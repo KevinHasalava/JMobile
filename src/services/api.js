@@ -1,8 +1,11 @@
 import axios from 'axios';
 
-// Base URL: in production (Vercel monorepo) use relative /api — same domain, no CORS.
-// Locally, REACT_APP_API_URL in .env overrides this to http://localhost:5000/api
-const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
+// Bulletproof Monorepo Setup:
+// In Vercel production, forcefully use the relative '/api' route to hit serverless functions.
+// This prevents old Vercel Environment Variables (REACT_APP_API_URL) from breaking the app.
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? '/api' 
+  : (process.env.REACT_APP_API_URL || 'http://localhost:5000/api');
 
 // Create axios instance
 const api = axios.create({
