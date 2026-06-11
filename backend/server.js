@@ -118,29 +118,31 @@ app.use((req, res) => {
   });
 });
 
-// ─── ASYNC IIFE: Await DB connection BEFORE listening ───
-const PORT = process.env.PORT || 5000;
 
-(async () => {
-  try {
-    // Wait for MongoDB to connect before starting the server
-    await connectDB();
+// ─── Only start the HTTP server when run directly (local dev) ───────────────
+// When required as a module by Vercel serverless (api/index.js), skip listen().
+// process.exit() inside the IIFE would kill the serverless function otherwise.
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
 
-    server.listen(PORT, () => {
-      console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-      console.log(`Socket.io server ready`);
-    });
-  } catch (error) {
-    console.error(`❌ Failed to start server: ${error.message}`);
-    process.exit(1);
-  }
-})();
+  (async () => {
+    try {
+      await connectDB();
+      server.listen(PORT, () => {
+        console.log(`Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+        console.log(`Socket.io server ready`);
+      });
+    } catch (error) {
+      console.error(`❌ Failed to start server: ${error.message}`);
+      process.exit(1);
+    }
+  })();
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err, promise) => {
-  console.log(`Error: ${err.message}`);
-  // Close server & exit process
-  server.close(() => process.exit(1));
-});
+  process.on('unhandledRejection', (err) => {
+    console.log(`Error: ${err.message}`);
+    server.close(() => process.exit(1));
+  });
+}
 
 module.exports = app;
+

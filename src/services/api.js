@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// Base URL for API - Replace with your backend URL
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+// Base URL: in production (Vercel monorepo) use relative /api — same domain, no CORS.
+// Locally, REACT_APP_API_URL in .env overrides this to http://localhost:5000/api
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
 // Create axios instance
 const api = axios.create({
