@@ -54,12 +54,16 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
   return children;
 };
 
-function App() {
+// Inner wrapper: lives inside AuthProvider so it can call useAuth()
+// This lets CartProvider receive the correct userId on every render.
+const AppWithCart = () => {
+  const { user } = useAuth();
+  const userId = user?._id || user?.id || null;
+
   return (
-    <AuthProvider>
-      <CartProvider>
-        <SocketProvider>
-          <NotificationProvider>
+    <CartProvider userId={userId}>
+      <SocketProvider>
+        <NotificationProvider>
           <Router>
             <Toaster
               position="top-right"
@@ -70,87 +74,21 @@ function App() {
                   color: '#E5E5E7',
                   border: '1px solid #2C2C2E',
                 },
-                success: {
-                  iconTheme: {
-                    primary: '#FF8C00',
-                    secondary: '#1C1C1E',
-                  },
-                },
-                error: {
-                  iconTheme: {
-                    primary: '#EF4444',
-                    secondary: '#1C1C1E',
-                  },
-                },
+                success: { iconTheme: { primary: '#FF8C00', secondary: '#1C1C1E' } },
+                error:   { iconTheme: { primary: '#EF4444', secondary: '#1C1C1E' } },
               }}
             />
             <div className="flex flex-col min-h-screen">
               <Routes>
                 {/* Admin Routes - Without Header/Footer */}
-                <Route
-                  path="/admin"
-                  element={
-                    <ProtectedRoute adminOnly={true}>
-                      <AdminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/dashboard"
-                  element={
-                    <ProtectedRoute adminOnly={true}>
-                      <AdminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/products"
-                  element={
-                    <ProtectedRoute adminOnly={true}>
-                      <AdminProducts />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/users"
-                  element={
-                    <ProtectedRoute adminOnly={true}>
-                      <AdminUsers />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/orders"
-                  element={
-                    <ProtectedRoute adminOnly={true}>
-                      <AdminOrders />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/chat"
-                  element={
-                    <ProtectedRoute adminOnly={true}>
-                      <AdminChat />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/inquiries"
-                  element={
-                    <ProtectedRoute adminOnly={true}>
-                      <AdminInquiries />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
-                  path="/admin/payments"
-                  element={
-                    <ProtectedRoute adminOnly={true}>
-                      <AdminPayments />
-                    </ProtectedRoute>
-                  }
-                />
+                <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute>} />
+                <Route path="/admin/dashboard" element={<ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute>} />
+                <Route path="/admin/products"  element={<ProtectedRoute adminOnly={true}><AdminProducts /></ProtectedRoute>} />
+                <Route path="/admin/users"     element={<ProtectedRoute adminOnly={true}><AdminUsers /></ProtectedRoute>} />
+                <Route path="/admin/orders"    element={<ProtectedRoute adminOnly={true}><AdminOrders /></ProtectedRoute>} />
+                <Route path="/admin/chat"      element={<ProtectedRoute adminOnly={true}><AdminChat /></ProtectedRoute>} />
+                <Route path="/admin/inquiries" element={<ProtectedRoute adminOnly={true}><AdminInquiries /></ProtectedRoute>} />
+                <Route path="/admin/payments"  element={<ProtectedRoute adminOnly={true}><AdminPayments /></ProtectedRoute>} />
 
                 {/* Public Routes - With Header/Footer */}
                 <Route path="/*" element={
@@ -158,32 +96,18 @@ function App() {
                     <Header />
                     <main className="flex-grow">
                       <Routes>
-                        <Route path="/" element={<Home />} />
+                        <Route path="/"         element={<Home />} />
                         <Route path="/products" element={<Products />} />
                         <Route path="/product/:id" element={<ProductDetails />} />
-                        <Route path="/cart" element={<Cart />} />
-                        <Route
-                          path="/checkout"
-                          element={
-                            <ProtectedRoute>
-                              <Checkout />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route path="/login" element={<Login />} />
+                        <Route path="/cart"     element={<Cart />} />
+                        <Route path="/checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
+                        <Route path="/login"    element={<Login />} />
                         <Route path="/register" element={<Register />} />
                         <Route path="/forgot-password" element={<ForgotPassword />} />
                         <Route path="/reset-password/:userId/:token" element={<ResetPassword />} />
-                        <Route path="/about" element={<About />} />
+                        <Route path="/about"   element={<About />} />
                         <Route path="/contact" element={<Contact />} />
-                        <Route 
-                          path="/profile" 
-                          element={
-                            <ProtectedRoute>
-                              <Profile />
-                            </ProtectedRoute>
-                          } 
-                        />
+                        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
                       </Routes>
                     </main>
                     <Footer />
@@ -193,11 +117,19 @@ function App() {
               </Routes>
             </div>
           </Router>
-          </NotificationProvider>
-        </SocketProvider>
-      </CartProvider>
+        </NotificationProvider>
+      </SocketProvider>
+    </CartProvider>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppWithCart />
     </AuthProvider>
   );
 }
 
 export default App;
+
