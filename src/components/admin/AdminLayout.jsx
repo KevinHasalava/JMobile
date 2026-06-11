@@ -8,7 +8,7 @@ const AdminLayout = ({ children }) => {
   const [isSidebarOpen,  setIsSidebarOpen]  = useState(true);
   const [isNotifOpen,    setIsNotifOpen]    = useState(false);
   const [bellAnimate,    setBellAnimate]    = useState(false);
-  const location  = useNavigate() && useLocation();
+  const location  = useLocation();
   const navigate  = useNavigate();
   const { user, logout } = useAuth();
   const { unreadCount }  = useNotifications();
