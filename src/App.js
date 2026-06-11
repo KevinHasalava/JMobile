@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { SocketProvider } from './context/SocketContext';
+import { NotificationProvider } from './context/NotificationContext';
 import Header from './components/common/Header';
 import Footer from './components/common/Footer';
 import ChatWidget from './components/common/ChatWidget';
@@ -33,8 +34,11 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex justify-center items-center min-h-screen bg-[#0B0C10]">
+        <div className="relative w-14 h-14">
+          <div className="absolute inset-0 rounded-full border-4 border-gray-800" />
+          <div className="absolute inset-0 rounded-full border-4 border-[#FF8C00] border-t-transparent animate-spin" />
+        </div>
       </div>
     );
   }
@@ -55,6 +59,7 @@ function App() {
     <AuthProvider>
       <CartProvider>
         <SocketProvider>
+          <NotificationProvider>
           <Router>
             <Toaster
               position="top-right"
@@ -188,6 +193,7 @@ function App() {
               </Routes>
             </div>
           </Router>
+          </NotificationProvider>
         </SocketProvider>
       </CartProvider>
     </AuthProvider>

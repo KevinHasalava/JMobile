@@ -7,30 +7,41 @@ const Conversation = require('../models/Conversation');
 const onlineUsers = new Map();
 
 const setupSocket = (io) => {
-  // Authentication middleware
+  // Authentication middleware — allow guests (no token) through
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token;
-      
+
       if (!token) {
-        return next(new Error('Authentication error'));
+        // Guest connection — no user attached
+        socket.user = null;
+        return next();
       }
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await User.findById(decoded.id).select('-password');
 
       if (!user) {
-        return next(new Error('User not found'));
+        socket.user = null;
+        return next();
       }
 
       socket.user = user;
       next();
     } catch (error) {
-      next(new Error('Authentication error'));
+      // Invalid token — allow as guest rather than rejecting
+      socket.user = null;
+      next();
     }
   });
 
   io.on('connection', (socket) => {
+    if (!socket.user) {
+      // Guest — no rooms to join, but connection is valid
+      console.log('👤 Guest socket connected:', socket.id);
+      return;
+    }
+
     console.log(`✅ User connected: ${socket.user.name} (${socket.user._id})`);
 
     // Add user to online users
@@ -46,6 +57,7 @@ const setupSocket = (io) => {
 
     // Emit online users to admins
     io.to('admin-room').emit('onlineUsers', Array.from(onlineUsers.keys()));
+
 
     // Handle join conversation
     socket.on('joinConversation', (conversationId) => {

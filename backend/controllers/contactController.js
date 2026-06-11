@@ -28,6 +28,22 @@ exports.submitInquiry = async (req, res, next) => {
       message: 'Your message has been sent successfully! We will get back to you shortly.',
       data: { id: inquiry._id },
     });
+
+    // Emit real-time notification to admin room (after response sent)
+    try {
+      const io = req.app.get('io');
+      if (io) {
+        io.to('admin-room').emit('new_contact', {
+          inquiryId: inquiry._id,
+          name:    inquiry.name,
+          email:   inquiry.email,
+          subject: inquiry.subject,
+          createdAt: inquiry.createdAt,
+        });
+      }
+    } catch (socketErr) {
+      console.warn('Socket emit failed (non-critical):', socketErr.message);
+    }
   } catch (error) {
     next(error);
   }

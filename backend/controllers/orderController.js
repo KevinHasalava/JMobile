@@ -71,10 +71,10 @@ exports.createOrder = async (req, res, next) => {
     try {
       const io = req.app.get('io');
       if (io) {
-        io.to('admin-room').emit('newOrder', {
+        io.to('admin-room').emit('new_order', {
           orderId: order._id,
-          customer: req.user.name,
-          totalPrice: order.totalPrice,
+          customerName: req.user.name,
+          total: order.totalPrice,
           paymentMethod: order.paymentMethod,
           hasSlip: !!bankSlip,
           createdAt: order.createdAt,
@@ -243,9 +243,9 @@ exports.updateOrderStatus = async (req, res, next) => {
     try {
       const io = req.app.get('io');
       if (io && order.user) {
-        io.to(order.user.toString()).emit('orderStatusUpdated', {
+        io.to(order.user.toString()).emit('order_status_updated', {
           orderId: order._id,
-          orderStatus: updatedOrder.orderStatus,
+          status: updatedOrder.orderStatus,
           paymentStatus: updatedOrder.paymentStatus,
         });
       }
@@ -325,12 +325,17 @@ exports.verifyBankSlip = async (req, res, next) => {
     try {
       const io = req.app.get('io');
       if (io && order.user) {
-        io.to(order.user._id.toString()).emit('orderStatusUpdated', {
+        const eventName = action === 'approve' ? 'payment_approved' : 'payment_rejected';
+        io.to(order.user._id.toString()).emit(eventName, {
           orderId: order._id,
-          bankSlipStatus: updatedOrder.bankSlipStatus,
-          orderStatus: updatedOrder.orderStatus,
+          status: updatedOrder.bankSlipStatus,
+          reason: updatedOrder.bankSlipRejectionReason,
+        });
+        // Also emit order_status_updated
+        io.to(order.user._id.toString()).emit('order_status_updated', {
+          orderId: order._id,
+          status: updatedOrder.orderStatus,
           paymentStatus: updatedOrder.paymentStatus,
-          rejectionReason: updatedOrder.bankSlipRejectionReason,
         });
       }
     } catch (socketErr) {
