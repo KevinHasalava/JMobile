@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
 import axios from 'axios';
-import { API_BASE_URL } from '../../services/api';
+import api, { API_BASE_URL } from '../../services/api';
 import toast from 'react-hot-toast';
 import { formatRupees } from '../../utils/currency';
 
@@ -142,20 +142,17 @@ const AdminProducts = () => {
 
   const fetchProducts = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const params = new URLSearchParams({
+      setLoading(true);
+      const params = {
         page: pagination.currentPage,
         limit: 10
-      });
+      };
 
-      if (searchTerm) params.append('search', searchTerm);
-      if (selectedBrand) params.append('brand', selectedBrand);
-      if (selectedCategory) params.append('category', selectedCategory);
+      if (searchTerm) params.search = searchTerm;
+      if (selectedBrand) params.brand = selectedBrand;
+      if (selectedCategory) params.category = selectedCategory;
 
-      const response = await axios.get(
-        `${API_BASE_URL}/admin/products?${params}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.get('/admin/products', { params });
 
       setProducts(response.data.data);
       setFilters(response.data.filters || { brands: [], categories: [] });
@@ -164,9 +161,10 @@ const AdminProducts = () => {
         pages: response.data.pages,
         total: response.data.total
       });
-      setLoading(false);
     } catch (error) {
       console.error('Error fetching products:', error);
+      // Cleanly caught error
+    } finally {
       setLoading(false);
     }
   };

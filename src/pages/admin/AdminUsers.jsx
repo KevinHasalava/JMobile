@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import axios from 'axios';
+import api from '../../services/api';
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
@@ -15,18 +15,15 @@ const AdminUsers = () => {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const params = new URLSearchParams({
+      setLoading(true);
+      const params = {
         page: pagination.currentPage,
         limit: 10
-      });
+      };
 
-      if (searchTerm) params.append('search', searchTerm);
+      if (searchTerm) params.search = searchTerm;
 
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/admin/users?${params}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.get('/admin/users', { params });
 
       setUsers(response.data.data);
       setPagination({
@@ -34,21 +31,17 @@ const AdminUsers = () => {
         pages: response.data.pages,
         total: response.data.total
       });
-      setLoading(false);
     } catch (error) {
       console.error('Error fetching users:', error);
+      // Catch error state cleanly
+    } finally {
       setLoading(false);
     }
   };
 
   const handleBlockToggle = async (userId, currentStatus) => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(
-        `${process.env.REACT_APP_API_URL}/admin/users/${userId}/block`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.put(`/admin/users/${userId}/block`);
       fetchUsers();
     } catch (error) {
       console.error('Error toggling user block:', error);
@@ -62,10 +55,7 @@ const AdminUsers = () => {
     }
 
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${process.env.REACT_APP_API_URL}/admin/users/${userId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/admin/users/${userId}`);
       fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
