@@ -24,6 +24,7 @@ const io = new Server(server, {
         'http://localhost:3001',
         'http://127.0.0.1:3000',
         'http://127.0.0.1:3001',
+        'https://jmobile-ten.vercel.app',
         process.env.CLIENT_URL
       ].filter(Boolean);
 
@@ -56,6 +57,7 @@ app.use(cors({
       'http://localhost:3001',
       'http://127.0.0.1:3000',
       'http://127.0.0.1:3001',
+      'https://jmobile-ten.vercel.app',
       process.env.CLIENT_URL
     ].filter(Boolean);
 

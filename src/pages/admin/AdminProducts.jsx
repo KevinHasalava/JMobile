@@ -152,7 +152,10 @@ const AdminProducts = () => {
       if (selectedBrand) params.brand = selectedBrand;
       if (selectedCategory) params.category = selectedCategory;
 
-      const response = await api.get('/admin/products', { params });
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_BASE_URL}/admin/products?${params}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
 
       setProducts(response.data.data);
       setFilters(response.data.filters || { brands: [], categories: [] });
