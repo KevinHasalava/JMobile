@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import axios from 'axios';
+import api from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
 import EmojiPicker from 'emoji-picker-react';
 
@@ -69,11 +69,7 @@ const AdminChat = () => {
 
   const fetchConversations = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `\${process.env.REACT_APP_API_URL}/chat/conversations`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.get('/chat/conversations');
       setConversations(response.data.data);
       setLoading(false);
     } catch (error) {
@@ -84,11 +80,7 @@ const AdminChat = () => {
 
   const fetchMessages = async (conversationId) => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/chat/messages/${conversationId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await api.get(`/chat/messages/${conversationId}`);
       setMessages(response.data.data);
       
       if (socket) {
@@ -115,16 +107,10 @@ const AdminChat = () => {
       formData.append('images', imageFile);
 
       try {
-        const token = localStorage.getItem('token');
-        const uploadResponse = await axios.post(
-          `\${process.env.REACT_APP_API_URL}/upload/product`,
+        const uploadResponse = await api.post(
+          '/upload/product',
           formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'multipart/form-data'
-            }
-          }
+          { headers: { 'Content-Type': 'multipart/form-data' } }
         );
 
         if (uploadResponse.data.data.images && uploadResponse.data.data.images.length > 0) {
@@ -182,11 +168,12 @@ const AdminChat = () => {
     return onlineUsers.includes(userId.toString());
   };
 
-  if (loading) {
+  if (loading || !socket) {
     return (
       <AdminLayout>
-        <div className="flex items-center justify-center h-96">
+        <div className="flex flex-col items-center justify-center h-96 space-y-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-text-muted font-medium animate-pulse">Initializing Secure Chat Connection...</p>
         </div>
       </AdminLayout>
     );
@@ -218,7 +205,7 @@ const AdminChat = () => {
                   <p>No conversations yet</p>
                 </div>
               ) : (
-                conversations.map((conv) => (
+                conversations?.map((conv) => (
                   <button
                     key={conv._id}
                     onClick={() => handleSelectConversation(conv)}
@@ -276,7 +263,7 @@ const AdminChat = () => {
                       <p>No messages yet</p>
                     </div>
                   ) : (
-                    messages.map((msg) => (
+                    messages?.map((msg) => (
                       <div
                         key={msg._id}
                         className={`flex ${msg.senderModel === 'Admin' ? 'justify-end' : 'justify-start'}`}

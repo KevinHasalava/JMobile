@@ -27,7 +27,10 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     // Connect even without token for public events (guest browsing)
-    const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000';
+    // Dynamic Vercel Origin for Production, Localhost fallback for Dev
+    const backendUrl = process.env.NODE_ENV === 'production' 
+      ? window.location.origin 
+      : (process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000');
 
     const newSocket = io(backendUrl, {
       auth:              token ? { token } : {},
