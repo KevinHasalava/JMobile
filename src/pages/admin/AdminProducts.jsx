@@ -209,14 +209,14 @@ const AdminProducts = () => {
         // Add new uploaded image paths
         if (uploadResponse.data.data.images && uploadResponse.data.data.images.length > 0) {
           const newImagePaths = uploadResponse.data.data.images.map(img => 
-            `${process.env.REACT_APP_BACKEND_URL}${img.path}`
+            `${window.location.origin}${img.path}`
           );
           uploadedImages = [...uploadedImages, ...newImagePaths];
         }
 
         // Set video path
         if (uploadResponse.data.data.video) {
-          uploadedVideo = `${process.env.REACT_APP_BACKEND_URL}${uploadResponse.data.data.video.path}`;
+          uploadedVideo = `${window.location.origin}${uploadResponse.data.data.video.path}`;
         }
       }
 
