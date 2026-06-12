@@ -94,6 +94,11 @@ export const getImageUrl = (image) => {
     image = image[0];
   }
 
+  // Auto-heal corrupted base64 images from previous bug (e.g. https://domain.comdata:image/...)
+  if (typeof image === 'string' && image.match(/^https?:\/\/[^\/]+data:image\//)) {
+    image = image.replace(/^https?:\/\/[^\/]+data:image\//, 'data:image/');
+  }
+
   // If it's a URL (contains http:// or https://) or a base64 data URI, return as is
   if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('data:image/'))) {
     return image;

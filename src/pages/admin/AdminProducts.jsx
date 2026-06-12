@@ -207,13 +207,18 @@ const AdminProducts = () => {
 
         if (uploadResponse.data.data.images?.length > 0) {
           const newImagePaths = uploadResponse.data.data.images.map(
-            img => `${window.location.origin}${img.path}`
+            img => img.path.startsWith('data:') || img.path.startsWith('http') 
+              ? img.path 
+              : `${window.location.origin}${img.path}`
           );
           uploadedImages = [...uploadedImages, ...newImagePaths];
         }
 
         if (uploadResponse.data.data.video) {
-          uploadedVideo = `${window.location.origin}${uploadResponse.data.data.video.path}`;
+          const videoPath = uploadResponse.data.data.video.path;
+          uploadedVideo = videoPath.startsWith('data:') || videoPath.startsWith('http') 
+            ? videoPath 
+            : `${window.location.origin}${videoPath}`;
         }
       }
 
