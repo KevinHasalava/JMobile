@@ -64,9 +64,10 @@ const AdminProducts = () => {
 
   const fetchBrandsAndCategories = async () => {
     try {
+      // Use shared `api` instance — token injected automatically via interceptor
       const [brandsResponse, categoriesResponse] = await Promise.all([
-        axios.get(`\${API_BASE_URL}/brands`),
-        axios.get(`\${API_BASE_URL}/categories`)
+        api.get('/brands'),
+        api.get('/categories')
       ]);
 
       setFilters({
@@ -87,8 +88,8 @@ const AdminProducts = () => {
     setAddingBrand(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `\${API_BASE_URL}/brands`,
+      const response = await api.post(
+        '/brands',
         { name: newBrandName.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -96,10 +97,10 @@ const AdminProducts = () => {
       toast.success('Brand added successfully!');
       setNewBrandName('');
       setShowBrandModal(false);
-      
+
       // Refresh brands list
       await fetchBrandsAndCategories();
-      
+
       // Set the newly added brand in the form
       setFormData({ ...formData, brand: response.data.data.name });
     } catch (error) {
@@ -118,8 +119,8 @@ const AdminProducts = () => {
     setAddingCategory(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(
-        `\${API_BASE_URL}/categories`,
+      const response = await api.post(
+        '/categories',
         { name: newCategoryName.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -127,10 +128,10 @@ const AdminProducts = () => {
       toast.success('Category added successfully!');
       setNewCategoryName('');
       setShowCategoryModal(false);
-      
+
       // Refresh categories list
       await fetchBrandsAndCategories();
-      
+
       // Set the newly added category in the form
       setFormData({ ...formData, category: response.data.data.name });
     } catch (error) {
@@ -143,17 +144,17 @@ const AdminProducts = () => {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const params = {
-        page: pagination.currentPage,
-        limit: 10
-      };
+      const token = localStorage.getItem('token');
 
-      if (searchTerm) params.search = searchTerm;
-      if (selectedBrand) params.brand = selectedBrand;
+      // Build query string properly — passing a plain object to axios `params`
+      // lets it serialize correctly (e.g. ?page=1&limit=10&brand=Apple)
+      const params = { page: pagination.currentPage, limit: 10 };
+      if (searchTerm)       params.search   = searchTerm;
+      if (selectedBrand)    params.brand    = selectedBrand;
       if (selectedCategory) params.category = selectedCategory;
 
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_BASE_URL}/admin/products?${params}`, {
+      const response = await api.get('/admin/products', {
+        params,
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -166,7 +167,6 @@ const AdminProducts = () => {
       });
     } catch (error) {
       console.error('Error fetching products:', error);
-      // Cleanly caught error
     } finally {
       setLoading(false);
     }
@@ -175,73 +175,68 @@ const AdminProducts = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setUploadingFiles(true);
-    
+
     try {
       const token = localStorage.getItem('token');
-      let uploadedImages = formData.images || [];
-      let uploadedVideo = formData.video || '';
+      // Explicit auth header — passed on every call including multipart uploads
+      const authHeader = { Authorization: `Bearer ${token}` };
 
-      // Upload new files if any
+      let uploadedImages = formData.images || [];
+      let uploadedVideo  = formData.video  || '';
+
+      // ── Step 1: Upload media files if any were selected ──────────────────────
       if (imageFiles.length > 0 || videoFile) {
         const uploadFormData = new FormData();
-        
-        // Append image files
-        imageFiles.forEach(file => {
-          uploadFormData.append('images', file);
-        });
-        
-        // Append video file
-        if (videoFile) {
-          uploadFormData.append('video', videoFile);
-        }
 
-        const uploadResponse = await axios.post(
-          `\${API_BASE_URL}/upload/product`,
+        imageFiles.forEach(file => uploadFormData.append('images', file));
+        if (videoFile) uploadFormData.append('video', videoFile);
+
+        const uploadResponse = await api.post(
+          '/upload/product',
           uploadFormData,
           {
             headers: {
-              Authorization: `Bearer ${token}`,
+              ...authHeader,
               'Content-Type': 'multipart/form-data'
             }
           }
         );
 
-        // Add new uploaded image paths
-        if (uploadResponse.data.data.images && uploadResponse.data.data.images.length > 0) {
-          const newImagePaths = uploadResponse.data.data.images.map(img => 
-            `${window.location.origin}${img.path}`
+        if (uploadResponse.data.data.images?.length > 0) {
+          const newImagePaths = uploadResponse.data.data.images.map(
+            img => `${window.location.origin}${img.path}`
           );
           uploadedImages = [...uploadedImages, ...newImagePaths];
         }
 
-        // Set video path
         if (uploadResponse.data.data.video) {
           uploadedVideo = `${window.location.origin}${uploadResponse.data.data.video.path}`;
         }
       }
 
+      // ── Step 2: Save or update the product record ─────────────────────────────
       const productData = {
         ...formData,
-        price: parseFloat(formData.price),
+        price:         parseFloat(formData.price),
         originalPrice: parseFloat(formData.originalPrice) || parseFloat(formData.price),
-        stock: parseInt(formData.stock),
-        images: uploadedImages,
-        image: uploadedImages[0] || formData.image, // First image as main image
-        video: uploadedVideo
+        stock:         parseInt(formData.stock),
+        images:        uploadedImages,
+        image:         uploadedImages[0] || formData.image,
+        video:         uploadedVideo
       };
 
       if (editingProduct) {
-        await axios.put(
-          `${API_BASE_URL}/admin/products/${editingProduct._id}`,
+        await api.put(
+          `/admin/products/${editingProduct._id}`,
           productData,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: authHeader }
         );
         toast.success('Product updated successfully!');
       } else {
-        await axios.post(
-          `\${API_BASE_URL}/admin/products`,
+        await api.post(
+          '/admin/products',
           productData,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers: authHeader }
         );
         toast.success('Product created successfully!');
       }

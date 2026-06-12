@@ -3,26 +3,26 @@ import axios from 'axios';
 // ─── Bulletproof Base URL Resolution ──────────────────────────────────────────
 //
 // Priority chain (highest → lowest):
-//   1. In production builds: always use relative '/api' so requests route through
-//      Vercel's own rewrite rules (vercel.json) → no cross-origin, no CORS issues.
-//   2. In local dev: use REACT_APP_API_URL from .env if set.
-//   3. Final fallback: derive from window.location.origin so a mismatched or
-//      missing CLIENT_URL env var on Vercel can NEVER break the app.
+//   1. In production: always use relative '/api' — works on every Vercel domain
+//      (prod, preview, branch) without needing ANY env var.
+//   2. Local dev: use REACT_APP_API_URL from .env if it points to a real server.
+//   3. Final safety net: derive from window.location.origin so a misconfigured
+//      or missing Vercel env var can NEVER break the app.
 //
 const resolveBaseURL = () => {
   if (process.env.NODE_ENV === 'production') {
-    // Same-origin relative path — works on any Vercel domain, preview or prod.
+    // Same-origin relative path — no CORS, works on any Vercel branch URL.
     return '/api';
   }
 
-  // Local development
+  // Local development — use .env value if it isn't pointing at the frontend port
   const envURL = process.env.REACT_APP_API_URL;
-  if (envURL && !envURL.includes('localhost:3000')) {
+  if (envURL && !envURL.includes('localhost:3000') && !envURL.includes('localhost:3001')) {
     return envURL;
   }
 
-  // Dynamic fallback: derive the API base from whatever origin the app is on.
-  // Covers staging previews, custom domains, and misconfigured env vars.
+  // Dynamic fallback: derive API base from whatever origin the app is currently on.
+  // Covers staging, preview URLs, and any misconfigured env var state.
   if (typeof window !== 'undefined') {
     return `${window.location.origin}/api`;
   }

@@ -12,26 +12,17 @@ const setupSocket = require('./config/socket');
 dotenv.config();
 
 // ─── Shared CORS origin resolver ─────────────────────────────────────────────
-// Does NOT rely on CLIENT_URL being correctly set in Vercel dashboard.
-// Any *.vercel.app domain (preview + prod) is automatically allowed.
-const STATIC_ORIGINS = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:3001',
-  // Add your custom production domain here if you ever use one:
-  // 'https://jmobiles.com',
-];
-
+// Dynamically allows ANY origin that contains '.vercel.app' (covers all
+// preview + production branch URLs) or any localhost port (local dev).
+// Does NOT rely on CLIENT_URL or any hardcoded domain list.
 const corsOriginResolver = (origin, callback) => {
-  // Allow server-to-server / Postman (no origin header)
+  // Allow server-to-server / Postman / mobile (no origin header)
   if (!origin) return callback(null, true);
-  // Allow any Vercel preview or production deployment automatically
-  if (origin.endsWith('.vercel.app')) return callback(null, true);
-  // Allow explicitly listed origins
-  if (STATIC_ORIGINS.includes(origin)) return callback(null, true);
-  // Allow CLIENT_URL if it is set and is NOT localhost (guards against the
-  // Vercel dashboard misconfiguration that caused this bug)
+  // Allow any *.vercel.app deployment — preview branches, prod, aliases
+  if (origin.includes('.vercel.app')) return callback(null, true);
+  // Allow any localhost port for local development
+  if (origin.includes('localhost') || origin.includes('127.0.0.1')) return callback(null, true);
+  // Allow CLIENT_URL only if it is explicitly set and is not a localhost value
   const clientUrl = process.env.CLIENT_URL;
   if (clientUrl && !clientUrl.includes('localhost') && origin === clientUrl) {
     return callback(null, true);
