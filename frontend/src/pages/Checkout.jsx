@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { convertAndFormatPrice } from '../utils/currency';
-import api, { ordersAPI } from '../services/api';
+import api, { ordersAPI, API_BASE_URL } from '../services/api';
+import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const Checkout = () => {
@@ -113,8 +114,11 @@ const Checkout = () => {
         const formDataPayload = new FormData();
         formDataPayload.append('bankSlip', slipImage);
 
-        const uploadRes = await api.post('/upload/bank-slip', formDataPayload, {
-          headers: { 'Content-Type': 'multipart/form-data' },
+        const uploadRes = await axios.post(`${API_BASE_URL}/upload/bank-slip`, formDataPayload, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          },
+          withCredentials: true
         });
 
         const bankSlipData = uploadRes.data.data; // { filename, path, ... }

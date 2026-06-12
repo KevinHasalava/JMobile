@@ -35,7 +35,7 @@ const ChatWidget = () => {
     if (user && token && isOpen && !conversation) {
       fetchConversation();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, token, isOpen]); // fetchConversation and conversation omitted intentionally
 
   // Socket listeners
@@ -47,7 +47,7 @@ const ChatWidget = () => {
     socket.on('newMessage', (message) => {
       setMessages(prev => [...prev, message]);
       setUnreadCount(0);
-      
+
       // Mark as read if chat is open
       if (isOpen && !minimized) {
         socket.emit('markAsRead', { conversationId: conversation._id });
@@ -97,7 +97,7 @@ const ChatWidget = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setMessages(response.data.data);
-      
+
       // Mark as read
       if (socket) {
         socket.emit('markAsRead', { conversationId });
@@ -119,7 +119,7 @@ const ChatWidget = () => {
 
       try {
         const uploadResponse = await axios.post(
-          `\${process.env.REACT_APP_API_URL}/upload/product`,
+          `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/upload/product`,
           formData,
           {
             headers: {
@@ -299,7 +299,7 @@ const ChatWidget = () => {
                     </button>
                   </div>
                 )}
-                
+
                 {showEmojiPicker && (
                   <div className="absolute bottom-20 right-4">
                     <EmojiPicker onEmojiClick={handleEmojiClick} theme="dark" />

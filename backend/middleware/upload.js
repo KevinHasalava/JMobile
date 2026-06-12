@@ -14,8 +14,10 @@ const bankSlipsDir = isVercel ? '/tmp/bank-slips' : path.join(uploadDir, 'bank-s
 // On Vercel we CANNOT rely on this because /tmp subdirectories are NOT
 // preserved across cold starts — directories are instead created on-demand
 // inside every multer destination() callback via ensureDir().
+const avatarDir = isVercel ? '/tmp/avatars' : path.join(uploadDir, 'avatars');
+
 if (!isVercel) {
-  [productImagesDir, productVideosDir, bankSlipsDir].forEach((dir) => {
+  [productImagesDir, productVideosDir, bankSlipsDir, avatarDir].forEach((dir) => {
     try {
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     } catch (e) {
@@ -58,9 +60,6 @@ const slipFileFilter = (req, file, cb) => {
 };
 
 // ─── Helper: ensure a directory exists at request time ────────────────────────
-// Called inside every multer destination() callback so that on Vercel (where
-// /tmp subdirectories are NOT pre-created) the path is force-created before
-// multer tries to write the file — preventing ENOENT crashes on cold starts.
 const ensureDir = (dir) => {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -88,6 +87,18 @@ const slipStorage = multer.diskStorage({
   filename: (req, file, cb) => {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     cb(null, `slip-${unique}${path.extname(file.originalname)}`);
+  },
+});
+
+// ─── Avatar storage ────────────────────────────────────────────────────────
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    ensureDir(avatarDir);
+    cb(null, avatarDir);
+  },
+  filename: (req, file, cb) => {
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    cb(null, `avatar-${unique}${path.extname(file.originalname)}`);
   },
 });
 
@@ -145,9 +156,16 @@ const uploadBankSlip = multer({
   fileFilter: slipFileFilter,
 }).single('bankSlip');
 
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: imageFileFilter,
+}).single('avatar');
+
 module.exports = {
   uploadProductImages,
   uploadProductVideo,
   uploadProductMedia,
   uploadBankSlip,
+  uploadAvatar,
 };

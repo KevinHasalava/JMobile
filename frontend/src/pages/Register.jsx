@@ -116,7 +116,7 @@ const Register = () => {
   });
 
   return (
-    <div className="min-h-screen bg-dark-bg py-12 px-4 flex items-center justify-center">
+    <div className="min-h-screen bg-dark-bg pt-32 pb-12 px-4 flex items-center justify-center">
       <div className="max-w-2xl w-full">
         <div className="bg-dark-card rounded-2xl shadow-glow-orange border border-dark-border p-8 animate-fadeIn">
           {/* Header */}
@@ -277,7 +277,7 @@ const Register = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-orange text-white py-3 rounded-lg hover:shadow-glow-orange transition-all font-semibold disabled:bg-gray-600 disabled:cursor-not-allowed disabled:shadow-none btn-orange-glow"
+              className="w-full flex items-center justify-center bg-gradient-orange text-white py-3 rounded-lg hover:shadow-glow-orange transition-all font-semibold disabled:bg-gray-600 disabled:cursor-not-allowed disabled:shadow-none btn-orange-glow"
             >
               {loading ? (
                 <span className="flex items-center justify-center">

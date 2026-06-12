@@ -153,6 +153,50 @@ router.post('/bank-slip', protect, (req, res) => {
   });
 });
 
+// @desc    Upload user avatar
+// @route   POST /api/upload/avatar
+// @access  Private
+router.post('/avatar', protect, (req, res) => {
+  const { uploadAvatar } = require('../middleware/upload');
+  uploadAvatar(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({
+        success: false,
+        message: err.message
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please upload an avatar image'
+      });
+    }
+
+    let finalPath = `/api/upload/serve?file=avatars/${req.file.filename}`;
+    
+    if (isVercel) {
+      const absolutePath = path.join('/tmp/avatars', req.file.filename);
+      if (fs.existsSync(absolutePath)) {
+        const base64Data = fs.readFileSync(absolutePath, 'base64');
+        finalPath = `data:${req.file.mimetype};base64,${base64Data}`;
+        try { fs.unlinkSync(absolutePath); } catch(e) {}
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Avatar uploaded successfully',
+      data: {
+        filename: req.file.filename,
+        path: finalPath,
+        mimetype: req.file.mimetype,
+        size: req.file.size
+      }
+    });
+  });
+});
+
 // @desc    Delete uploaded file
 // @route   DELETE /api/upload/file
 // @access  Private/Admin

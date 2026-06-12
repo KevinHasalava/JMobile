@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
 import EmojiPicker from 'emoji-picker-react';
+import axios from 'axios';
 
 const AdminChat = () => {
   const { socket, connected, onlineUsers } = useSocket();
@@ -108,10 +109,15 @@ const AdminChat = () => {
       formData.append('images', imageFile);
 
       try {
-        const uploadResponse = await api.post(
-          '/upload/product',
+        const uploadResponse = await axios.post(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/upload/product`,
           formData,
-          { headers: { 'Content-Type': 'multipart/form-data' } }
+          {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            },
+            withCredentials: true
+          }
         );
 
         if (uploadResponse.data.data.images && uploadResponse.data.data.images.length > 0) {

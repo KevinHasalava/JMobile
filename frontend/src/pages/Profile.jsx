@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ordersAPI } from '../services/api';
+import axios from 'axios';
 
 const Profile = () => {
   const { user, updateProfile, logout } = useAuth();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const fileInputRef = useRef(null);
+  const [avatarFile, setAvatarFile] = useState(null);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -80,6 +83,18 @@ const Profile = () => {
     navigate('/login');
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image size should be less than 5MB');
+        return;
+      }
+      setAvatarFile(file);
+      setFormData(prev => ({ ...prev, avatar: URL.createObjectURL(file) }));
+    }
+  };
+
   const handleSave = async () => {
     if (formData.password && !formData.currentPassword) {
       return toast.error('Current password is required to set a new password!');
@@ -89,11 +104,33 @@ const Profile = () => {
     }
 
     setLoading(true);
+    let finalAvatarUrl = formData.avatar;
+
+    if (avatarFile) {
+      const uploadData = new FormData();
+      uploadData.append('avatar', avatarFile);
+      try {
+        const uploadRes = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/upload/avatar`, uploadData, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          },
+          withCredentials: true
+        });
+        if (uploadRes.data.success) {
+          finalAvatarUrl = `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000'}${uploadRes.data.data.path}`;
+        }
+      } catch (err) {
+        toast.error(err.response?.data?.message || 'Failed to upload avatar');
+        setLoading(false);
+        return;
+      }
+    }
+
     const updateData = {
       name: formData.name,
       email: formData.email,
       phone: formData.phone,
-      avatar: formData.avatar,
+      avatar: finalAvatarUrl,
       address: {
         street: formData.street,
         city: formData.city,
@@ -114,13 +151,12 @@ const Profile = () => {
     if (result.success) {
       toast.success('Profile updated successfully!');
       setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+      setAvatarFile(null);
       setIsEditing(false);
     } else {
       toast.error(result.message || 'Failed to update profile');
     }
   };
-
-
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white py-12 px-4">
@@ -128,7 +164,14 @@ const Profile = () => {
         
         {/* Dynamic Profile Avatar Header */}
         <div className="mb-10 flex flex-col md:flex-row items-center gap-6 bg-[#121212]/50 p-6 rounded-3xl border border-gray-800 backdrop-blur-sm">
-          <div className="relative group cursor-pointer" onClick={() => setIsEditing(true)}>
+          <div className="relative group cursor-pointer" onClick={() => isEditing && fileInputRef.current?.click()}>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+              accept="image/*" 
+              className="hidden" 
+            />
             {/* Glowing neon border wrapper */}
             <div className="absolute -inset-1 bg-gradient-to-r from-[#f97316] to-[#ea580c] rounded-full blur opacity-70 group-hover:opacity-100 transition duration-500"></div>
             
@@ -147,12 +190,14 @@ const Profile = () => {
             </div>
 
             {/* Camera Edit Badge */}
-            <div className="absolute bottom-0 right-0 w-8 h-8 bg-[#f97316] rounded-full border-2 border-[#121212] flex items-center justify-center shadow-lg hover:bg-[#ea580c] transition-colors">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </div>
+            {isEditing && (
+              <div className="absolute bottom-0 right-0 w-8 h-8 bg-[#f97316] rounded-full border-2 border-[#121212] flex items-center justify-center shadow-lg hover:bg-[#ea580c] transition-colors">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+            )}
           </div>
 
           <div className="text-center md:text-left flex-1">
@@ -166,17 +211,8 @@ const Profile = () => {
             <div className="inline-block px-4 py-1.5 rounded-full border border-[#f97316]/30 bg-[#f97316]/10 text-[#f97316] text-sm font-semibold tracking-wide">
               Premium Elite Member
             </div>
-            {/* Optional URL input for non-Google users shown only in edit mode */}
             {isEditing && (
-              <div className="mt-4 animate-fadeIn">
-                <input
-                  type="text"
-                  placeholder="Paste Avatar Image URL here..."
-                  value={formData.avatar}
-                  onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
-                  className="w-full md:w-96 bg-[#1a1a1a] border border-gray-700 rounded-lg px-4 py-2 text-sm text-white focus:outline-none focus:border-[#f97316] transition-colors"
-                />
-              </div>
+              <p className="text-sm text-gray-400 mt-3 animate-fadeIn">Click on the avatar image to upload a new one.</p>
             )}
           </div>
 

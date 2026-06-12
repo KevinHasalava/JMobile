@@ -16,7 +16,7 @@ const AdminProducts = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [pagination, setPagination] = useState({ currentPage: 1, pages: 1, total: 0 });
   const [uploadingFiles, setUploadingFiles] = useState(false);
-  
+
   // Brand and Category modal states
   const [showBrandModal, setShowBrandModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -24,7 +24,7 @@ const AdminProducts = () => {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [addingBrand, setAddingBrand] = useState(false);
   const [addingCategory, setAddingCategory] = useState(false);
-  
+
   // File upload states
   const [imageFiles, setImageFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
@@ -59,7 +59,7 @@ const AdminProducts = () => {
   useEffect(() => {
     fetchProducts();
     fetchBrandsAndCategories();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedBrand, selectedCategory, searchTerm, pagination.currentPage]); // fetch fns omitted intentionally
 
   const fetchBrandsAndCategories = async () => {
@@ -149,8 +149,8 @@ const AdminProducts = () => {
       // Build query string properly — passing a plain object to axios `params`
       // lets it serialize correctly (e.g. ?page=1&limit=10&brand=Apple)
       const params = { page: pagination.currentPage, limit: 10 };
-      if (searchTerm)       params.search   = searchTerm;
-      if (selectedBrand)    params.brand    = selectedBrand;
+      if (searchTerm) params.search = searchTerm;
+      if (selectedBrand) params.brand = selectedBrand;
       if (selectedCategory) params.category = selectedCategory;
 
       const response = await api.get('/admin/products', {
@@ -182,7 +182,7 @@ const AdminProducts = () => {
       const authHeader = { Authorization: `Bearer ${token}` };
 
       let uploadedImages = formData.images || [];
-      let uploadedVideo  = formData.video  || '';
+      let uploadedVideo = formData.video || '';
 
       // ── Step 1: Upload media files if any were selected ──────────────────────
       if (imageFiles.length > 0 || videoFile) {
@@ -191,46 +191,36 @@ const AdminProducts = () => {
         imageFiles.forEach(file => uploadFormData.append('images', file));
         if (videoFile) uploadFormData.append('video', videoFile);
 
-        const uploadResponse = await api.post(
-          '/upload/product',
+        const uploadResponse = await axios.post(
+          `${API_BASE_URL}/upload/product`,
           uploadFormData,
           {
-            headers: {
-              // Do NOT set Content-Type manually for multipart/form-data —
-              // axios must set it automatically so it can include the correct
-              // multipart boundary (e.g. multipart/form-data; boundary=----xyz).
-              // Overriding it here strips the boundary and breaks server-side parsing.
-              ...authHeader
-            }
+            headers: authHeader,
+            withCredentials: true
           }
         );
 
         if (uploadResponse.data.data.images?.length > 0) {
           const newImagePaths = uploadResponse.data.data.images.map(
-            img => img.path.startsWith('data:') || img.path.startsWith('http') 
-              ? img.path 
-              : `${window.location.origin}${img.path}`
+            img => img.path
           );
           uploadedImages = [...uploadedImages, ...newImagePaths];
         }
 
         if (uploadResponse.data.data.video) {
-          const videoPath = uploadResponse.data.data.video.path;
-          uploadedVideo = videoPath.startsWith('data:') || videoPath.startsWith('http') 
-            ? videoPath 
-            : `${window.location.origin}${videoPath}`;
+          uploadedVideo = uploadResponse.data.data.video.path;
         }
       }
 
       // ── Step 2: Save or update the product record ─────────────────────────────
       const productData = {
         ...formData,
-        price:         parseFloat(formData.price),
+        price: parseFloat(formData.price),
         originalPrice: parseFloat(formData.originalPrice) || parseFloat(formData.price),
-        stock:         parseInt(formData.stock),
-        images:        uploadedImages,
-        image:         uploadedImages[0] || formData.image,
-        video:         uploadedVideo
+        stock: parseInt(formData.stock),
+        images: uploadedImages,
+        image: uploadedImages[0] || formData.image,
+        video: uploadedVideo
       };
 
       if (editingProduct) {
@@ -391,13 +381,13 @@ const AdminProducts = () => {
         color: product.specifications?.color || []
       }
     });
-    
+
     // Clear file upload states
     setImageFiles([]);
     setImagePreviews([]);
     setVideoFile(null);
     setVideoPreview(null);
-    
+
     setShowModal(true);
   };
 
@@ -426,7 +416,7 @@ const AdminProducts = () => {
         color: []
       }
     });
-    
+
     // Clear file upload states
     setImageFiles([]);
     setImagePreviews([]);
@@ -553,13 +543,12 @@ const AdminProducts = () => {
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          product.stock > 10
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${product.stock > 10
                             ? 'bg-green-500/20 text-green-500'
                             : product.stock > 0
-                            ? 'bg-yellow-500/20 text-yellow-500'
-                            : 'bg-red-500/20 text-red-500'
-                        }`}
+                              ? 'bg-yellow-500/20 text-yellow-500'
+                              : 'bg-red-500/20 text-red-500'
+                          }`}
                       >
                         {product.stock}
                       </span>
@@ -805,7 +794,7 @@ const AdminProducts = () => {
                     <label className="block text-text-primary font-medium mb-2">
                       Product Images (Max 5 images)
                     </label>
-                    
+
                     {/* Existing Images */}
                     {formData.images && formData.images.length > 0 && (
                       <div className="mb-3">
@@ -813,9 +802,9 @@ const AdminProducts = () => {
                         <div className="grid grid-cols-5 gap-2">
                           {formData.images.map((img, index) => (
                             <div key={index} className="relative group">
-                              <img 
-                                src={getImageUrl(img)} 
-                                alt={`Product ${index + 1}`} 
+                              <img
+                                src={getImageUrl(img)}
+                                alt={`Product ${index + 1}`}
                                 className="w-full h-20 object-cover rounded-lg border border-dark-border"
                               />
                               <button
@@ -859,9 +848,9 @@ const AdminProducts = () => {
                       <div className="grid grid-cols-5 gap-2">
                         {imagePreviews.map((preview, index) => (
                           <div key={index} className="relative group">
-                            <img 
-                              src={preview} 
-                              alt={`Preview ${index + 1}`} 
+                            <img
+                              src={preview}
+                              alt={`Preview ${index + 1}`}
                               className="w-full h-20 object-cover rounded-lg border-2 border-green-500"
                             />
                             <button
@@ -891,8 +880,8 @@ const AdminProducts = () => {
                       <div className="mb-3">
                         <p className="text-text-muted text-sm mb-2">Existing Video:</p>
                         <div className="relative group">
-                          <video 
-                            src={formData.video} 
+                          <video
+                            src={formData.video}
                             className="w-full h-40 object-cover rounded-lg border border-dark-border"
                             controls
                           />
@@ -934,8 +923,8 @@ const AdminProducts = () => {
                     {/* Video Preview */}
                     {videoPreview && (
                       <div className="relative group">
-                        <video 
-                          src={videoPreview} 
+                        <video
+                          src={videoPreview}
                           className="w-full h-40 object-cover rounded-lg border-2 border-green-500"
                           controls
                         />
@@ -991,8 +980,8 @@ const AdminProducts = () => {
                         <input
                           type="text"
                           value={formData.specifications.display}
-                          onChange={(e) => setFormData({ 
-                            ...formData, 
+                          onChange={(e) => setFormData({
+                            ...formData,
                             specifications: { ...formData.specifications, display: e.target.value }
                           })}
                           placeholder="e.g., 6.1-inch OLED"
@@ -1005,8 +994,8 @@ const AdminProducts = () => {
                         <input
                           type="text"
                           value={formData.specifications.processor}
-                          onChange={(e) => setFormData({ 
-                            ...formData, 
+                          onChange={(e) => setFormData({
+                            ...formData,
                             specifications: { ...formData.specifications, processor: e.target.value }
                           })}
                           placeholder="e.g., A16 Bionic"
@@ -1019,8 +1008,8 @@ const AdminProducts = () => {
                         <input
                           type="text"
                           value={formData.specifications.ram}
-                          onChange={(e) => setFormData({ 
-                            ...formData, 
+                          onChange={(e) => setFormData({
+                            ...formData,
                             specifications: { ...formData.specifications, ram: e.target.value }
                           })}
                           placeholder="e.g., 6GB"
@@ -1033,8 +1022,8 @@ const AdminProducts = () => {
                         <input
                           type="text"
                           value={formData.specifications.storage}
-                          onChange={(e) => setFormData({ 
-                            ...formData, 
+                          onChange={(e) => setFormData({
+                            ...formData,
                             specifications: { ...formData.specifications, storage: e.target.value }
                           })}
                           placeholder="e.g., 128GB, 256GB, 512GB"
@@ -1047,8 +1036,8 @@ const AdminProducts = () => {
                         <input
                           type="text"
                           value={formData.specifications.camera}
-                          onChange={(e) => setFormData({ 
-                            ...formData, 
+                          onChange={(e) => setFormData({
+                            ...formData,
                             specifications: { ...formData.specifications, camera: e.target.value }
                           })}
                           placeholder="e.g., 48MP + 12MP + 12MP"
@@ -1061,8 +1050,8 @@ const AdminProducts = () => {
                         <input
                           type="text"
                           value={formData.specifications.battery}
-                          onChange={(e) => setFormData({ 
-                            ...formData, 
+                          onChange={(e) => setFormData({
+                            ...formData,
                             specifications: { ...formData.specifications, battery: e.target.value }
                           })}
                           placeholder="e.g., 4323mAh"
@@ -1075,8 +1064,8 @@ const AdminProducts = () => {
                         <input
                           type="text"
                           value={formData.specifications.os}
-                          onChange={(e) => setFormData({ 
-                            ...formData, 
+                          onChange={(e) => setFormData({
+                            ...formData,
                             specifications: { ...formData.specifications, os: e.target.value }
                           })}
                           placeholder="e.g., iOS 16, Android 13"
@@ -1090,10 +1079,10 @@ const AdminProducts = () => {
                       <input
                         type="text"
                         value={formData.specifications.color.join(', ')}
-                        onChange={(e) => setFormData({ 
-                          ...formData, 
-                          specifications: { 
-                            ...formData.specifications, 
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          specifications: {
+                            ...formData.specifications,
                             color: e.target.value.split(',').map(c => c.trim()).filter(c => c)
                           }
                         })}

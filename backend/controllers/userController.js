@@ -241,28 +241,45 @@ exports.deleteUser = async (req, res, next) => {
   }
 };
 
-// @desc    Forgot password
+// @desc    Forgot password (Alternative Flow using Email + Phone)
 // @route   POST /api/users/forgotpassword
 // @access  Public
 exports.forgotPassword = async (req, res, next) => {
   try {
-    const user = await User.findOne({ email: req.body.email });
-    const genericMessage = "If this email exists, you'll receive a reset link";
-
-    if (!user) {
-      // Artificial delay to prevent timing attacks
-      await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 500));
-      return res.status(200).json({ success: true, message: genericMessage });
+    const { email, phone } = req.body;
+    
+    if (!email || !phone) {
+      return res.status(400).json({ success: false, message: 'Please provide both email and phone number' });
     }
 
-    // Rate Limiting Logic: Max 3 requests per hour
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      // Artificial delay
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 500));
+      return res.status(400).json({ success: false, message: 'Account verification failed. Please check your details.' });
+    }
+
+    // Verify phone number (strip spaces and special chars, compare last 9 digits for robust matching)
+    const dbPhoneStr = user.phone ? user.phone.replace(/[^0-9]/g, '') : '';
+    const inputPhoneStr = phone ? phone.replace(/[^0-9]/g, '') : '';
+    
+    const dbPhoneMatch = dbPhoneStr.slice(-9);
+    const inputPhoneMatch = inputPhoneStr.slice(-9);
+
+    if (!dbPhoneMatch || dbPhoneMatch !== inputPhoneMatch) {
+      console.log(`Failed phone verification. DB: ${dbPhoneMatch}, Input: ${inputPhoneMatch}`);
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 500 + 500));
+      return res.status(400).json({ success: false, message: 'Account verification failed. Please check your details.' });
+    }
+
+    // Rate Limiting Logic: Max 5 requests per hour
     const now = Date.now();
     const oneHour = 60 * 60 * 1000;
     
     if (user.resetPasswordRequestWindow && (now - user.resetPasswordRequestWindow.getTime() < oneHour)) {
-      if (user.resetPasswordRequestCount >= 3) {
-        // Silently rate limit, still return generic message to prevent email enumeration
-        return res.status(200).json({ success: true, message: genericMessage });
+      if (user.resetPasswordRequestCount >= 5) {
+        return res.status(429).json({ success: false, message: 'Too many attempts. Please try again later.' });
       }
       user.resetPasswordRequestCount += 1;
     } else {
@@ -272,38 +289,16 @@ exports.forgotPassword = async (req, res, next) => {
 
     // Get reset token (raw token is returned, hash is saved in DB)
     const resetToken = await user.getResetPasswordToken();
-
     await user.save({ validateBeforeSave: false });
 
-    const resetUrl = `http://localhost:3000/reset-password/${user._id}/${resetToken}`;
-
-    // Send email via Resend
-    try {
-      await resend.emails.send({
-        from: 'onboarding@resend.dev', // Default resend testing email
-        to: user.email,
-        subject: 'Password Reset Request - JM Mobiles',
-        html: `
-          <h1>You have requested a password reset</h1>
-          <p>Please go to this link to reset your password. This link is valid for 15 minutes.</p>
-          <a href="${resetUrl}" clicktracking="off">${resetUrl}</a>
-        `
-      });
-      // In development, if no API key is provided, log it to console as a fallback
-      if (!process.env.RESEND_API_KEY) {
-        console.log(`[DEV MODE] Mock Email Sent. Reset URL: ${resetUrl}`);
-      }
-    } catch (err) {
-      console.error('Email could not be sent', err);
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpire = undefined;
-      await user.save({ validateBeforeSave: false });
-      return res.status(500).json({ success: false, message: 'Email could not be sent' });
-    }
-
+    // Return the token directly since we verified identity via Phone + Email
     res.status(200).json({
       success: true,
-      message: genericMessage
+      message: 'Identity verified successfully.',
+      data: {
+        userId: user._id,
+        resetToken: resetToken
+      }
     });
   } catch (error) {
     next(error);
