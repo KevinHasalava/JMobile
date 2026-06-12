@@ -56,23 +56,47 @@ router.post('/product', protect, admin, (req, res) => {
 
     // Process uploaded images
     if (req.files && req.files.images) {
-      uploadedFiles.images = req.files.images.map(file => ({
-        filename: file.filename,
-        // Use /api/upload/serve so images are streamed from /tmp on Vercel
-        // (the static /uploads/ path is only available in local dev)
-        path: `/api/upload/serve?file=products/images/${file.filename}`,
-        size: file.size,
-        mimetype: file.mimetype
-      }));
+      uploadedFiles.images = req.files.images.map(file => {
+        let finalPath = `/api/upload/serve?file=products/images/${file.filename}`;
+        
+        // On Vercel, convert to Base64 to bypass ephemeral /tmp storage disappearing
+        if (isVercel) {
+          const absolutePath = path.join('/tmp/products/images', file.filename);
+          if (fs.existsSync(absolutePath)) {
+            const base64Data = fs.readFileSync(absolutePath, 'base64');
+            finalPath = `data:${file.mimetype};base64,${base64Data}`;
+            // Clean up to save /tmp space
+            try { fs.unlinkSync(absolutePath); } catch(e) {}
+          }
+        }
+
+        return {
+          filename: file.filename,
+          path: finalPath,
+          size: file.size,
+          mimetype: file.mimetype
+        };
+      });
     }
 
     // Process uploaded video
     if (req.files && req.files.video && req.files.video[0]) {
       const videoFile = req.files.video[0];
+      let finalPath = `/api/upload/serve?file=products/videos/${videoFile.filename}`;
+      
+      if (isVercel) {
+        const absolutePath = path.join('/tmp/products/videos', videoFile.filename);
+        if (fs.existsSync(absolutePath)) {
+          // Warning: large videos will hit MongoDB 16MB document limit
+          const base64Data = fs.readFileSync(absolutePath, 'base64');
+          finalPath = `data:${videoFile.mimetype};base64,${base64Data}`;
+          try { fs.unlinkSync(absolutePath); } catch(e) {}
+        }
+      }
+
       uploadedFiles.video = {
         filename: videoFile.filename,
-        // Use /api/upload/serve so video is streamed from /tmp on Vercel
-        path: `/api/upload/serve?file=products/videos/${videoFile.filename}`,
+        path: finalPath,
         size: videoFile.size,
         mimetype: videoFile.mimetype
       };
@@ -105,13 +129,23 @@ router.post('/bank-slip', protect, (req, res) => {
       });
     }
 
+    let finalPath = `/api/upload/serve?file=bank-slips/${req.file.filename}`;
+    
+    if (isVercel) {
+      const absolutePath = path.join('/tmp/bank-slips', req.file.filename);
+      if (fs.existsSync(absolutePath)) {
+        const base64Data = fs.readFileSync(absolutePath, 'base64');
+        finalPath = `data:${req.file.mimetype};base64,${base64Data}`;
+        try { fs.unlinkSync(absolutePath); } catch(e) {}
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: 'Bank slip uploaded successfully',
       data: {
         filename: req.file.filename,
-        // Use /api/upload/serve so bank slips are streamed from /tmp on Vercel
-        path: `/api/upload/serve?file=bank-slips/${req.file.filename}`,
+        path: finalPath,
         mimetype: req.file.mimetype,
         size: req.file.size
       }

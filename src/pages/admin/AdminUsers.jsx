@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 
 const AdminUsers = () => {
@@ -45,7 +46,7 @@ const AdminUsers = () => {
       fetchUsers();
     } catch (error) {
       console.error('Error toggling user block:', error);
-      alert('Error updating user status');
+      toast.error('Error updating user status');
     }
   };
 
@@ -59,7 +60,7 @@ const AdminUsers = () => {
       fetchUsers();
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert('Error deleting user');
+      toast.error('Error deleting user');
     }
   };
 

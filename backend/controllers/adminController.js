@@ -295,9 +295,17 @@ exports.getAllProducts = async (req, res, next) => {
 
     const total = await Product.countDocuments(query);
 
-    // Get unique brands and categories
-    const brands = await Product.distinct('brand');
-    const categories = await Product.distinct('category');
+    // Get unique brands and categories (case-insensitive deduplication)
+    const rawBrands = await Product.distinct('brand');
+    const rawCategories = await Product.distinct('category');
+
+    const brands = [...new Set(rawBrands.map(b => b?.toLowerCase()))].map(
+      lower => rawBrands.find(b => b?.toLowerCase() === lower)
+    ).filter(Boolean);
+
+    const categories = [...new Set(rawCategories.map(c => c?.toLowerCase()))].map(
+      lower => rawCategories.find(c => c?.toLowerCase() === lower)
+    ).filter(Boolean);
 
     res.status(200).json({
       success: true,

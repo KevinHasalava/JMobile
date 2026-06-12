@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { convertAndFormatPrice } from '../../utils/currency';
 
@@ -56,7 +57,7 @@ const AdminOrders = () => {
       setShowModal(false);
     } catch (error) {
       console.error('Error updating order status:', error);
-      alert('Error updating order status');
+      toast.error('Error updating order status');
     }
   };
 

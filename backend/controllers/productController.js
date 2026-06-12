@@ -250,8 +250,16 @@ exports.getFeaturedProducts = async (req, res, next) => {
 // @access  Public
 exports.getFilters = async (req, res, next) => {
   try {
-    const brands = await Product.distinct('brand').lean();
-    const categories = await Product.distinct('category').lean();
+    const rawBrands = await Product.distinct('brand');
+    const rawCategories = await Product.distinct('category');
+    
+    const brands = [...new Set(rawBrands.map(b => b?.toLowerCase()))].map(
+      lower => rawBrands.find(b => b?.toLowerCase() === lower)
+    ).filter(Boolean);
+
+    const categories = [...new Set(rawCategories.map(c => c?.toLowerCase()))].map(
+      lower => rawCategories.find(c => c?.toLowerCase() === lower)
+    ).filter(Boolean);
     const priceStats = await Product.aggregate([
       {
         $group: {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { useSocket } from '../../context/SocketContext';
 import EmojiPicker from 'emoji-picker-react';
@@ -118,7 +119,7 @@ const AdminChat = () => {
         }
       } catch (error) {
         console.error('Error uploading image:', error);
-        alert('Failed to upload image');
+        toast.error('Failed to upload image');
         return;
       }
     }

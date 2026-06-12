@@ -94,8 +94,8 @@ export const getImageUrl = (image) => {
     image = image[0];
   }
 
-  // If it's a URL (contains http:// or https://), return as is
-  if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://'))) {
+  // If it's a URL (contains http:// or https://) or a base64 data URI, return as is
+  if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('data:image/'))) {
     return image;
   }
 

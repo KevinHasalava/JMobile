@@ -260,7 +260,7 @@ const AdminProducts = () => {
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length > 5) {
-      alert('Maximum 5 images allowed');
+      toast.error('Maximum 5 images allowed');
       return;
     }
 
@@ -277,7 +277,7 @@ const AdminProducts = () => {
     if (!file) return;
 
     if (file.size > 50 * 1024 * 1024) {
-      alert('Video file size should not exceed 50MB');
+      toast.error('Video file size should not exceed 50MB');
       return;
     }
 
