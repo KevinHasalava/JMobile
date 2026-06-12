@@ -1,4 +1,5 @@
 // Currency conversion and formatting utilities
+import { API_BASE_URL } from '../services/api';
 
 // Conversion rate: 1 USD = 370 LKR (approximate)
 const USD_TO_LKR_RATE = 370;
@@ -98,10 +99,17 @@ export const getImageUrl = (image) => {
     return image;
   }
 
-  // If it's a local path, prepend /uploads/
+  // If it's a local path, prepend /uploads/ or resolve API paths
   if (typeof image === 'string' && image.length > 0) {
     if (image.startsWith('/uploads/')) {
       return image;
+    }
+    if (image.startsWith('/api/')) {
+      // Extract the origin/domain from API_BASE_URL if it has one (for local dev)
+      // e.g. "http://localhost:5000/api" -> "http://localhost:5000"
+      // e.g. "/api" -> ""
+      const baseUrl = API_BASE_URL.replace(/\/api$/, '');
+      return `${baseUrl}${image}`;
     }
     return `/uploads/${image}`;
   }

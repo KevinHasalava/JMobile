@@ -3,7 +3,7 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import axios from 'axios';
 import api, { API_BASE_URL } from '../../services/api';
 import toast from 'react-hot-toast';
-import { formatRupees } from '../../utils/currency';
+import { formatRupees, getImageUrl } from '../../utils/currency';
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
@@ -523,7 +523,7 @@ const AdminProducts = () => {
                   <tr key={product._id} className="hover:bg-dark-bg transition-colors">
                     <td className="px-6 py-4">
                       <img
-                        src={product.image || '/placeholder.png'}
+                        src={getImageUrl(product.image || product.images)}
                         alt={product.name}
                         className="w-12 h-12 object-cover rounded-lg"
                       />
@@ -809,7 +809,7 @@ const AdminProducts = () => {
                           {formData.images.map((img, index) => (
                             <div key={index} className="relative group">
                               <img 
-                                src={img} 
+                                src={getImageUrl(img)} 
                                 alt={`Product ${index + 1}`} 
                                 className="w-full h-20 object-cover rounded-lg border border-dark-border"
                               />

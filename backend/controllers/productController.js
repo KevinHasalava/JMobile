@@ -71,8 +71,8 @@ exports.getProducts = async (req, res, next) => {
 
     console.log(`✅ Retrieved ${products.length} products (Total: ${totalProducts})`);
 
-    // Set cache headers for static responses
-    res.set('Cache-Control', 'public, max-age=300'); // Cache for 5 minutes
+    // Prevent CDN caching to ensure real-time inventory updates
+    res.set('Cache-Control', 'no-store');
 
     res.status(200).json({
       success: true,
@@ -124,8 +124,8 @@ exports.getProduct = async (req, res, next) => {
 
     console.log(`✅ Product found: ${product.name}`);
 
-    // Set cache header for single product (longer cache)
-    res.set('Cache-Control', 'public, max-age=600'); // Cache for 10 minutes
+    // Prevent CDN caching
+    res.set('Cache-Control', 'no-store');
 
     res.status(200).json({
       success: true,
@@ -233,7 +233,7 @@ exports.getFeaturedProducts = async (req, res, next) => {
       .lean()
       .exec();
 
-    res.set('Cache-Control', 'public, max-age=600');
+    res.set('Cache-Control', 'no-store');
 
     res.status(200).json({
       success: true,
@@ -262,7 +262,7 @@ exports.getFilters = async (req, res, next) => {
       }
     ]);
 
-    res.set('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
+    res.set('Cache-Control', 'no-store');
 
     res.status(200).json({
       success: true,
