@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import axios from 'axios';
+import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { convertAndFormatPrice } from '../../utils/currency';
 
@@ -33,8 +33,8 @@ const AdminPayments = () => {
         params.append('slipStatus', slipFilter);
       }
 
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/admin/orders?${params}`,
+      const response = await api.get(
+        `/admin/orders?${params}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -65,8 +65,8 @@ const AdminPayments = () => {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.put(
-        `${process.env.REACT_APP_API_URL}/admin/orders/${selectedOrder._id}/verify-slip`,
+      await api.put(
+        `/admin/orders/${selectedOrder._id}/verify-slip`,
         { action, rejectionReason },
         { headers: { Authorization: `Bearer ${token}` } }
       );

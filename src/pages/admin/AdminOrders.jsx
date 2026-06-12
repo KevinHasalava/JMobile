@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import axios from 'axios';
+import api from '../../services/api';
 import { convertAndFormatPrice } from '../../utils/currency';
 
 const AdminOrders = () => {
@@ -26,8 +26,8 @@ const AdminOrders = () => {
 
       if (statusFilter) params.append('status', statusFilter);
 
-      const response = await axios.get(
-        `${process.env.REACT_APP_API_URL}/admin/orders?${params}`,
+      const response = await api.get(
+        `/admin/orders?${params}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -47,8 +47,8 @@ const AdminOrders = () => {
   const handleStatusUpdate = async (orderId, orderStatus, paymentStatus) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(
-        `${process.env.REACT_APP_API_URL}/admin/orders/${orderId}/status`,
+      await api.put(
+        `/admin/orders/${orderId}/status`,
         { orderStatus, paymentStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );

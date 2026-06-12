@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import toast from 'react-hot-toast';
 
 const Contact = () => {
@@ -33,8 +33,8 @@ const Contact = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/contact`,
+      const response = await api.post(
+        '/contact',
         formData
       );
       if (response.data.success) {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import { useCart } from '../context/CartContext';
 import { convertAndFormatPrice, getImageUrl } from '../utils/currency';
 
@@ -24,7 +24,9 @@ const ProductDetails = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await axios.get(`${process.env.REACT_APP_API_URL}/products/${id}`);
+      // Use shared api instance — resolves to /api in production (Vercel)
+      // and REACT_APP_API_URL in local dev. Never uses undefined.
+      const response = await api.get(`/products/${id}`);
       
       if (response.data.success) {
         setProduct(response.data.data);

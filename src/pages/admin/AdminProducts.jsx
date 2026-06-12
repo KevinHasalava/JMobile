@@ -196,8 +196,11 @@ const AdminProducts = () => {
           uploadFormData,
           {
             headers: {
-              ...authHeader,
-              'Content-Type': 'multipart/form-data'
+              // Do NOT set Content-Type manually for multipart/form-data —
+              // axios must set it automatically so it can include the correct
+              // multipart boundary (e.g. multipart/form-data; boundary=----xyz).
+              // Overriding it here strips the boundary and breaks server-side parsing.
+              ...authHeader
             }
           }
         );

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import api from '../services/api';
 
 const ResetPassword = () => {
   const { userId, token } = useParams();
@@ -22,12 +23,8 @@ const ResetPassword = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/users/resetpassword/${userId}/${token}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
-      const data = await response.json();
+      const response = await api.put(`/users/resetpassword/${userId}/${token}`, { password });
+      const data = response.data;
 
       if (data.success) {
         toast.success('Password reset successfully! Please log in.');

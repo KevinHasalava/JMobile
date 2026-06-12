@@ -10,7 +10,10 @@ const productImagesDir = isVercel ? '/tmp/products/images' : path.join(uploadDir
 const productVideosDir = isVercel ? '/tmp/products/videos' : path.join(uploadDir, 'products/videos');
 const bankSlipsDir = isVercel ? '/tmp/bank-slips' : path.join(uploadDir, 'bank-slips');
 
-// Create directories if they don't exist (local dev only)
+// Create directories at module load time for local dev.
+// On Vercel we CANNOT rely on this because /tmp subdirectories are NOT
+// preserved across cold starts — directories are instead created on-demand
+// inside every multer destination() callback via ensureDir().
 if (!isVercel) {
   [productImagesDir, productVideosDir, bankSlipsDir].forEach((dir) => {
     try {
@@ -54,9 +57,22 @@ const slipFileFilter = (req, file, cb) => {
   }
 };
 
+// ─── Helper: ensure a directory exists at request time ────────────────────────
+// Called inside every multer destination() callback so that on Vercel (where
+// /tmp subdirectories are NOT pre-created) the path is force-created before
+// multer tries to write the file — preventing ENOENT crashes on cold starts.
+const ensureDir = (dir) => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+};
+
 // ─── Product image storage ────────────────────────────────────────────────────
 const imageStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, productImagesDir),
+  destination: (req, file, cb) => {
+    ensureDir(productImagesDir);
+    cb(null, productImagesDir);
+  },
   filename: (req, file, cb) => {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     cb(null, `product-${unique}${path.extname(file.originalname)}`);
@@ -65,7 +81,10 @@ const imageStorage = multer.diskStorage({
 
 // ─── Bank slip storage ────────────────────────────────────────────────────────
 const slipStorage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, bankSlipsDir),
+  destination: (req, file, cb) => {
+    ensureDir(bankSlipsDir);
+    cb(null, bankSlipsDir);
+  },
   filename: (req, file, cb) => {
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     cb(null, `slip-${unique}${path.extname(file.originalname)}`);
@@ -81,7 +100,10 @@ const uploadProductImages = multer({
 
 const uploadProductVideo = multer({
   storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, productVideosDir),
+    destination: (req, file, cb) => {
+      ensureDir(productVideosDir);
+      cb(null, productVideosDir);
+    },
     filename: (req, file, cb) => {
       const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
       cb(null, `video-${unique}${path.extname(file.originalname)}`);
@@ -95,7 +117,9 @@ const uploadProductVideo = multer({
 const uploadProductMedia = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
-      cb(null, file.fieldname === 'video' ? productVideosDir : productImagesDir);
+      const dir = file.fieldname === 'video' ? productVideosDir : productImagesDir;
+      ensureDir(dir);
+      cb(null, dir);
     },
     filename: (req, file, cb) => {
       const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;

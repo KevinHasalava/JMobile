@@ -5,6 +5,38 @@ const { protect, admin } = require('../middleware/auth');
 const path = require('path');
 const fs = require('fs');
 
+// ─── Serve uploaded files from /tmp (Vercel) or local uploads/ (dev) ──────────
+// On Vercel the /uploads static middleware in server.js never has the files
+// because they're written to /tmp. This route bridges that gap: all uploaded
+// media is accessed via /api/upload/serve?file=<relative-path> which routes
+// through the serverless function and reads directly from /tmp.
+// @route   GET /api/upload/serve
+// @access  Public
+const isVercel = process.env.VERCEL === '1';
+const uploadBase = isVercel ? '/tmp' : path.join(__dirname, '../uploads');
+
+router.get('/serve', (req, res) => {
+  try {
+    const { file } = req.query;
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'file query param required' });
+    }
+
+    // Prevent path traversal
+    const safeName = file.replace(/\.\.\//g, '').replace(/\\/g, '/');
+    const absolutePath = path.join(uploadBase, safeName);
+
+    if (!fs.existsSync(absolutePath)) {
+      return res.status(404).json({ success: false, message: 'File not found' });
+    }
+
+    res.sendFile(absolutePath);
+  } catch (error) {
+    console.error('Error serving file:', error);
+    res.status(500).json({ success: false, message: 'Error serving file' });
+  }
+});
+
 // @desc    Upload product images and/or video
 // @route   POST /api/upload/product
 // @access  Private/Admin
@@ -26,7 +58,9 @@ router.post('/product', protect, admin, (req, res) => {
     if (req.files && req.files.images) {
       uploadedFiles.images = req.files.images.map(file => ({
         filename: file.filename,
-        path: `/uploads/products/images/${file.filename}`,
+        // Use /api/upload/serve so images are streamed from /tmp on Vercel
+        // (the static /uploads/ path is only available in local dev)
+        path: `/api/upload/serve?file=products/images/${file.filename}`,
         size: file.size,
         mimetype: file.mimetype
       }));
@@ -37,7 +71,8 @@ router.post('/product', protect, admin, (req, res) => {
       const videoFile = req.files.video[0];
       uploadedFiles.video = {
         filename: videoFile.filename,
-        path: `/uploads/products/videos/${videoFile.filename}`,
+        // Use /api/upload/serve so video is streamed from /tmp on Vercel
+        path: `/api/upload/serve?file=products/videos/${videoFile.filename}`,
         size: videoFile.size,
         mimetype: videoFile.mimetype
       };
@@ -75,7 +110,8 @@ router.post('/bank-slip', protect, (req, res) => {
       message: 'Bank slip uploaded successfully',
       data: {
         filename: req.file.filename,
-        path: `/uploads/bank-slips/${req.file.filename}`,
+        // Use /api/upload/serve so bank slips are streamed from /tmp on Vercel
+        path: `/api/upload/serve?file=bank-slips/${req.file.filename}`,
         mimetype: req.file.mimetype,
         size: req.file.size
       }

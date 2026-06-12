@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import ProductCard from '../components/common/ProductCard';
 
 /* ─── Brand logos data ────────────────────────────────── */
@@ -177,7 +177,7 @@ const Home = () => {
     const fetchFeaturedProducts = async () => {
       try {
         setLoading(true);
-        const response = await axios.get(`${process.env.REACT_APP_API_URL}/products?limit=8`);
+        const response = await api.get('/products?limit=8');
         if (response.data.success) {
           const sorted = [...response.data.data].sort((a, b) => (b.rating || 0) - (a.rating || 0));
           setFeaturedProducts(sorted.slice(0, 8));

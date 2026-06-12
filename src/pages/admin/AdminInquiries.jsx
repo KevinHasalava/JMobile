@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../components/admin/AdminLayout';
-import axios from 'axios';
+import api from '../../services/api';
 import toast from 'react-hot-toast';
 
 const STATUS_COLORS = {
@@ -32,8 +32,8 @@ const AdminInquiries = () => {
       if (statusFilter) params.set('status', statusFilter);
       if (search) params.set('search', search);
 
-      const res = await axios.get(
-        `${process.env.REACT_APP_API_URL}/contact?${params}`,
+      const res = await api.get(
+        `/contact?${params}`,
         { headers }
       );
       if (res.data.success) {
@@ -55,8 +55,8 @@ const AdminInquiries = () => {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      const res = await axios.put(
-        `${process.env.REACT_APP_API_URL}/contact/${id}`,
+      const res = await api.put(
+        `/contact/${id}`,
         { status: newStatus },
         { headers }
       );
@@ -87,8 +87,8 @@ const AdminInquiries = () => {
     if (!window.confirm('Delete this inquiry? This cannot be undone.')) return;
     setDeletingId(id);
     try {
-      const res = await axios.delete(
-        `${process.env.REACT_APP_API_URL}/contact/${id}`,
+      const res = await api.delete(
+        `/contact/${id}`,
         { headers }
       );
       if (res.data.success) {
