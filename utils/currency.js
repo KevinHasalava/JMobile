@@ -84,42 +84,30 @@ export const formatRupees = (priceInRupees, includeDecimals = true) => {
  * @param {string|array} image - Image URL or array of URLs from product
  * @returns {string} Correct image URL or placeholder
  */
-export const getImageUrl = (image) => {
-  if (!image) {
+export const getImageUrl = (imgSrc) => {
+  if (!imgSrc) {
     return '/placeholder.png';
   }
 
   // If it's an array, get the first element
-  if (Array.isArray(image)) {
-    image = image[0];
+  if (Array.isArray(imgSrc)) {
+    imgSrc = imgSrc[0];
   }
 
-  // Auto-heal corrupted base64 images from previous bug (e.g. https://domain.comdata:image/...)
-  if (typeof image === 'string' && image.match(/^https?:\/\/[^\/]+data:image\//)) {
-    image = image.replace(/^https?:\/\/[^\/]+data:image\//, 'data:image/');
+  if (typeof imgSrc !== 'string') return '/placeholder.png';
+
+  // Auto-heal corrupted base64 images from previous bug
+  if (imgSrc.match(/^https?:\/\/[^\/]+data:image\//)) {
+    imgSrc = imgSrc.replace(/^https?:\/\/[^\/]+data:image\//, 'data:image/');
   }
 
-  // If it's a URL (contains http:// or https://) or a base64 data URI, return as is
-  if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('data:image/'))) {
-    return image;
+  // If it's a URL or base64 or blob, return as is
+  if (imgSrc.startsWith('http://') || imgSrc.startsWith('https://') || imgSrc.startsWith('data:image/') || imgSrc.startsWith('blob:')) {
+    return imgSrc;
   }
 
-  // If it's a local path, prepend /uploads/ or resolve API paths
-  if (typeof image === 'string' && image.length > 0) {
-    if (image.startsWith('/uploads/')) {
-      return image;
-    }
-    if (image.startsWith('/api/')) {
-      // Extract the origin/domain from API_BASE_URL if it has one (for local dev)
-      // e.g. "http://localhost:5000/api" -> "http://localhost:5000"
-      // e.g. "/api" -> ""
-      const baseUrl = API_BASE_URL.replace(/\/api$/, '');
-      return `${baseUrl}${image}`;
-    }
-    return `/uploads/${image}`;
-  }
-
-  return '/placeholder.png';
+  // Handle legacy relative paths safely
+  return imgSrc.startsWith('/') ? imgSrc : `/${imgSrc}`;
 };
 
 const currencyUtils = {

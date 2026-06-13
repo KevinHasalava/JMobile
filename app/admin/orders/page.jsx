@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import toast from 'react-hot-toast';
 import api from '@/services/api';
-import { convertAndFormatPrice } from '@/utils/currency';
+import { convertAndFormatPrice, getImageUrl } from '@/utils/currency';
 
 const AdminOrders = () => {
   const [orders, setOrders] = useState([]);
@@ -59,6 +59,22 @@ const AdminOrders = () => {
     } catch (error) {
       console.error('Error updating order status:', error);
       toast.error('Error updating order status');
+    }
+  };
+
+  const handleDelete = async (orderId) => {
+    if (!window.confirm('Are you sure you want to delete this order?')) return;
+    
+    try {
+      const token = (typeof window !== "undefined" ? localStorage.getItem('token') : null);
+      await api.delete(`/admin/orders/${orderId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Order deleted successfully');
+      fetchOrders();
+    } catch (error) {
+      console.error('Error deleting order:', error);
+      toast.error('Failed to delete order');
     }
   };
 
@@ -182,12 +198,23 @@ const AdminOrders = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => viewOrderDetails(order)}
-                        className="text-primary hover:text-primary/80 font-medium"
-                      >
-                        View Details
-                      </button>
+                      <div className="flex items-center justify-end space-x-3">
+                        <button
+                          onClick={() => viewOrderDetails(order)}
+                          className="text-primary hover:text-primary/80 font-medium"
+                        >
+                          View Details
+                        </button>
+                        <button
+                          onClick={() => handleDelete(order._id)}
+                          className="text-red-500 hover:text-red-400"
+                          title="Delete Order"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -280,7 +307,7 @@ const AdminOrders = () => {
                       <div key={index} className="flex items-center justify-between p-2 bg-dark-card rounded">
                         <div className="flex items-center space-x-3">
                           {item.image && (
-                            <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded" />
+                            <img src={getImageUrl(item.image)} alt={item.name} className="w-12 h-12 object-cover rounded" />
                           )}
                           <div>
                             <p className="text-text-primary">{item.name}</p>

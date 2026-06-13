@@ -3,7 +3,7 @@ import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
 import { useCart } from '@/context/CartContext';
-import { convertAndFormatPrice } from '@/utils/currency';
+import { convertAndFormatPrice, getImageUrl } from '@/utils/currency';
 import api, { ordersAPI, API_BASE_URL } from '@/services/api';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -181,8 +181,13 @@ const Checkout = () => {
     }
   };
 
+  React.useEffect(() => {
+    if (cart.length === 0 && !orderPlaced) {
+      router.push('/cart');
+    }
+  }, [cart.length, orderPlaced, router]);
+
   if (cart.length === 0 && !orderPlaced) {
-    router.push('/cart');
     return null;
   }
 
@@ -464,10 +469,10 @@ const Checkout = () => {
 
               {/* Cart Items */}
               <div className="space-y-4 mb-6 max-h-64 overflow-y-auto">
-                {cart.map((item) => (
-                  <div key={item.id} className="flex space-x-3">
+                {cart.map((item, index) => (
+                  <div key={item._id || item.id || index} className="flex space-x-3">
                     <img
-                      src={item.image}
+                      src={getImageUrl(item.images?.[0] || item.image)}
                       alt={item.name}
                       className="w-16 h-16 object-contain bg-gray-100 rounded"
                     />

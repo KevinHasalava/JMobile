@@ -108,6 +108,9 @@ export async function POST(req, { params }) {
   try {
     if (route[0] === 'products') {
       const body = await req.json();
+      if (body.images && Array.isArray(body.images)) {
+        body.images = body.images.filter(img => img && typeof img === 'string' && img.trim() !== '');
+      }
       const product = await Product.create(body);
       return NextResponse.json({ success: true, message: 'Product created successfully', data: product }, { status: 201 });
     }
@@ -152,6 +155,9 @@ export async function PUT(req, { params }) {
     if (route[0] === 'products' && route.length === 2) {
       const id = route[1];
       const body = await req.json();
+      if (body.images && Array.isArray(body.images)) {
+        body.images = body.images.filter(img => img && typeof img === 'string' && img.trim() !== '');
+      }
       const product = await Product.findById(id);
       if (!product) return NextResponse.json({ success: false, message: 'Product not found' }, { status: 404 });
 
@@ -181,6 +187,15 @@ export async function DELETE(req, { params }) {
 
       await user.deleteOne();
       return NextResponse.json({ success: true, message: 'User deleted successfully' }, { status: 200 });
+    }
+
+    if (route[0] === 'orders' && route.length === 2) {
+      const id = route[1];
+      const order = await Order.findById(id);
+      if (!order) return NextResponse.json({ success: false, message: 'Order not found' }, { status: 404 });
+
+      await order.deleteOne();
+      return NextResponse.json({ success: true, message: 'Order deleted successfully' }, { status: 200 });
     }
 
     if (route[0] === 'products' && route.length === 2) {

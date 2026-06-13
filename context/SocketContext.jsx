@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import { useNotifications } from './NotificationContext';
-import axios from 'axios';
+import api from '@/services/api';
 
 const SocketContext = createContext();
 
@@ -33,7 +33,7 @@ export const SocketProvider = ({ children }) => {
     if (token && user) {
       pollingInterval.current = setInterval(async () => {
         try {
-          const { data } = await axios.get('/api/chat/unread', {
+          const { data } = await api.get('/chat/unread', {
             headers: { Authorization: `Bearer ${token}` }
           });
           // Handle unread updates gracefully here if necessary
@@ -53,7 +53,15 @@ export const SocketProvider = ({ children }) => {
     if (cb) cb();
   }, []);
 
-  const value = { socket: { connected: true, emit: emitEvent }, connected, onlineUsers, emitEvent };
+  const onEvent = useCallback((eventName, cb) => {
+    // Stub for socket.on
+  }, []);
+
+  const offEvent = useCallback((eventName, cb) => {
+    // Stub for socket.off
+  }, []);
+
+  const value = { socket: { connected: true, emit: emitEvent, on: onEvent, off: offEvent }, connected, onlineUsers, emitEvent };
 
   return (
     <SocketContext.Provider value={value}>

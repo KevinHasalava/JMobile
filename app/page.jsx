@@ -3,7 +3,7 @@ import Link from 'next/link';
 import React, { useState, useEffect, useRef } from 'react';
 
 import api from '@/services/api';
-import ProductCard from '@/components/common/ProductCard';
+import ProductCard from '@/components/client/ProductCard';
 
 /* ─── Brand logos data ────────────────────────────────── */
 const BRANDS = ['Apple', 'Samsung', 'Google', 'OnePlus', 'Xiaomi', 'Motorola', 'Sony', 'Realme'];

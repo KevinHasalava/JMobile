@@ -11,14 +11,14 @@
   --orange:        #FF8C00;
   --orange-dim:    #FF7A00;
   --orange-light:  #FFB347;
-  --bg-base:       #0B0C10;
-  --bg-card:       #111214;
-  --bg-elevated:   #161719;
-  --border:        rgba(255,255,255,0.07);
+  --bg-base:       #09090b; /* zinc-950 */
+  --bg-card:       #18181b; /* zinc-900 */
+  --bg-elevated:   #27272a; /* zinc-800 */
+  --border:        #27272a; /* zinc-800 */
   --border-orange: rgba(255,140,0,0.25);
-  --text-primary:  #F0F0F0;
-  --text-secondary:#A0A0A8;
-  --text-muted:    #5A5A68;
+  --text-primary:  #f4f4f5; /* zinc-100 */
+  --text-secondary:#a1a1aa; /* zinc-400 */
+  --text-muted:    #71717a; /* zinc-500 */
   --glow-orange:   0 0 40px rgba(255,140,0,0.25);
   --glow-orange-sm:0 0 16px rgba(255,140,0,0.3);
   --radius-xl:     16px;
@@ -540,3 +540,9 @@ img { max-width: 100%; }
   );
   pointer-events: none;
 }
+
+/* Hide Next.js Turbopack Dev Indicators */
+next-route-announcer { display: none !important; }
+#next-dev-status-badge { display: none !important; }
+[data-nextjs-toast] { display: none !important; }
+

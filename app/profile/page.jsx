@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 
 import toast from 'react-hot-toast';
-import { ordersAPI } from '@/services/api';
+import api, { ordersAPI } from '@/services/api';
+import { getImageUrl, convertAndFormatPrice } from '@/utils/currency';
 import axios from 'axios';
 
 const Profile = () => {
@@ -14,7 +15,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef(null);
   const [avatarFile, setAvatarFile] = useState(null);
-  
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -40,22 +41,23 @@ const Profile = () => {
     const fetchDashboardData = async () => {
       try {
         const { data } = await ordersAPI.getMyOrders();
-        
-        const totalOrders = data.length;
-        const totalSpent = data.reduce((acc, order) => acc + order.totalPrice, 0);
+        const ordersArray = data.data || [];
+
+        const totalOrders = ordersArray.length;
+        const totalSpent = ordersArray.reduce((acc, order) => acc + order.totalPrice, 0);
         const loyaltyPoints = Math.floor(totalSpent / 100);
-        
+
         setStats([
           { label: 'Total Orders', value: totalOrders.toString() },
-          { label: 'Wishlist Items', value: '0' }, 
+          { label: 'Wishlist Items', value: '0' },
           { label: 'Loyalty Points', value: loyaltyPoints.toString() },
         ]);
 
-        const formattedOrders = data.slice(0, 5).map(order => ({
-          id: `#ORD-${order._id.substring(order._id.length - 6).toUpperCase()}`,
-          date: new Date(order.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
-          status: order.status || (order.isDelivered ? 'Delivered' : 'Processing'),
-          total: `$${order.totalPrice.toFixed(2)}`
+          const formattedOrders = ordersArray.slice(0, 5).map(order => ({
+            id: `#ORD-${order._id.substring(order._id.length - 6).toUpperCase()}`,
+            date: new Date(order.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+            status: order.orderStatus || order.status || 'Pending',
+            total: convertAndFormatPrice(order.totalAmount || order.totalPrice || 0)
         }));
         setRecentOrders(formattedOrders);
       } catch (error) {
@@ -112,14 +114,9 @@ const Profile = () => {
       const uploadData = new FormData();
       uploadData.append('avatar', avatarFile);
       try {
-        const uploadRes = await axios.post(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/upload/avatar`, uploadData, {
-          headers: {
-            Authorization: `Bearer ${(typeof window !== "undefined" ? localStorage.getItem('token') : null)}`
-          },
-          withCredentials: true
-        });
+        const uploadRes = await api.post('/upload/avatar', uploadData);
         if (uploadRes.data.success) {
-          finalAvatarUrl = `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:5000'}${uploadRes.data.data.path}`;
+          finalAvatarUrl = uploadRes.data.data.path;
         }
       } catch (err) {
         toast.error(err.response?.data?.message || 'Failed to upload avatar');
@@ -149,7 +146,7 @@ const Profile = () => {
 
     const result = await updateProfile(updateData);
     setLoading(false);
-    
+
     if (result.success) {
       toast.success('Profile updated successfully!');
       setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
@@ -163,26 +160,26 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white py-12 px-4">
       <div className="container mx-auto max-w-7xl">
-        
+
         {/* Dynamic Profile Avatar Header */}
         <div className="mb-10 flex flex-col md:flex-row items-center gap-6 bg-[#121212]/50 p-6 rounded-3xl border border-gray-800 backdrop-blur-sm">
           <div className="relative group cursor-pointer" onClick={() => isEditing && fileInputRef.current?.click()}>
-            <input 
-              type="file" 
-              ref={fileInputRef} 
-              onChange={handleFileChange} 
-              accept="image/*" 
-              className="hidden" 
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              accept="image/*"
+              className="hidden"
             />
             {/* Glowing neon border wrapper */}
             <div className="absolute -inset-1 bg-gradient-to-r from-[#f97316] to-[#ea580c] rounded-full blur opacity-70 group-hover:opacity-100 transition duration-500"></div>
-            
+
             {/* Avatar Image */}
             <div className="relative w-28 h-28 rounded-full bg-[#1a1a1a] border-2 border-[#121212] overflow-hidden flex items-center justify-center text-4xl font-bold text-[#f97316]">
               {formData.avatar ? (
-                <img 
-                  src={formData.avatar} 
-                  alt="Avatar" 
+                <img
+                  src={getImageUrl(formData.avatar)}
+                  alt="Avatar"
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover"
                 />
@@ -193,10 +190,27 @@ const Profile = () => {
 
             {/* Camera Edit Badge */}
             {isEditing && (
-              <div className="absolute bottom-0 right-0 w-8 h-8 bg-[#f97316] rounded-full border-2 border-[#121212] flex items-center justify-center shadow-lg hover:bg-[#ea580c] transition-colors">
+              <div className="absolute bottom-0 right-0 w-8 h-8 bg-[#f97316] rounded-full border-2 border-[#121212] flex items-center justify-center shadow-lg hover:bg-[#ea580c] transition-colors z-10">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+            )}
+
+            {/* Remove Avatar Badge */}
+            {isEditing && formData.avatar && (
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAvatarFile(null);
+                  setFormData(prev => ({ ...prev, avatar: '' }));
+                }}
+                className="absolute top-0 right-0 w-8 h-8 bg-red-500 rounded-full border-2 border-[#121212] flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors z-10"
+                title="Remove Avatar"
+              >
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
             )}
@@ -233,7 +247,7 @@ const Profile = () => {
 
         {/* 2-Column Responsive Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
+
           {/* Left Column: Form Details */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-6">
             <div className="bg-[#121212] border border-gray-800 rounded-3xl p-8 relative overflow-hidden">
@@ -249,34 +263,34 @@ const Profile = () => {
                   </button>
                 )}
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">
                   <label className="block text-sm text-gray-400 mb-2">Full Name</label>
-                  <input type="text" disabled={!isEditing} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
+                  <input type="text" disabled={!isEditing} value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">Email Address</label>
-                  <input type="email" disabled={!isEditing} value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
+                  <input type="email" disabled={!isEditing} value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">Phone Number</label>
-                  <input type="tel" disabled={!isEditing} value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
+                  <input type="tel" disabled={!isEditing} value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
                 </div>
                 <div className="md:col-span-2 mt-6 pt-6 border-t border-gray-800/50">
                   <h4 className="text-md font-semibold mb-4 text-gray-300">Shipping Information</h4>
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm text-gray-400 mb-2">Shipping Address</label>
-                  <input type="text" disabled={!isEditing} value={formData.street} onChange={e => setFormData({...formData, street: e.target.value})} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
+                  <input type="text" disabled={!isEditing} value={formData.street} onChange={e => setFormData({ ...formData, street: e.target.value })} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">City</label>
-                  <input type="text" disabled={!isEditing} value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
+                  <input type="text" disabled={!isEditing} value={formData.city} onChange={e => setFormData({ ...formData, city: e.target.value })} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">Postal Code</label>
-                  <input type="text" disabled={!isEditing} value={formData.zipCode} onChange={e => setFormData({...formData, zipCode: e.target.value})} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
+                  <input type="text" disabled={!isEditing} value={formData.zipCode} onChange={e => setFormData({ ...formData, zipCode: e.target.value })} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
                 </div>
               </div>
 
@@ -289,15 +303,15 @@ const Profile = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div className="md:col-span-2">
                     <label className="block text-sm text-gray-400 mb-2">Current Password (Required for updates)</label>
-                    <input type="password" disabled={!isEditing} placeholder="Enter your current password" value={formData.currentPassword} onChange={e => setFormData({...formData, currentPassword: e.target.value})} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
+                    <input type="password" disabled={!isEditing} placeholder="Enter your current password" value={formData.currentPassword} onChange={e => setFormData({ ...formData, currentPassword: e.target.value })} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
                   </div>
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">New Password</label>
-                    <input type="password" disabled={!isEditing} placeholder="Leave blank to keep current" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
+                    <input type="password" disabled={!isEditing} placeholder="Leave blank to keep current" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
                   </div>
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">Confirm Password</label>
-                    <input type="password" disabled={!isEditing} placeholder="Confirm new password" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
+                    <input type="password" disabled={!isEditing} placeholder="Confirm new password" value={formData.confirmPassword} onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
                   </div>
                 </div>
               </div>
@@ -321,7 +335,7 @@ const Profile = () => {
 
           {/* Right Column: Analytics & Activity */}
           <div className="lg:col-span-5 xl:col-span-4 space-y-6">
-            
+
             {/* Stats Cards (Glassmorphism + Orange top border) */}
             <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-4">
               {stats.map((stat, i) => (
@@ -355,11 +369,10 @@ const Profile = () => {
                           <div className="text-gray-500 text-xs mt-1">{order.date}</div>
                         </td>
                         <td className="py-4 px-2">
-                          <span className={`inline-flex px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                            order.status === 'Delivered' 
-                              ? 'bg-green-500/10 text-green-500 border border-green-500/20' 
+                          <span className={`inline-flex px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${order.status === 'Delivered'
+                              ? 'bg-green-500/10 text-green-500 border border-green-500/20'
                               : 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
-                          }`}>
+                            }`}>
                             {order.status}
                           </span>
                         </td>
@@ -371,7 +384,7 @@ const Profile = () => {
                   </tbody>
                 </table>
               </div>
-              <button className="w-full mt-4 py-3 bg-[#1a1a1a] border border-gray-800 text-[#f97316] rounded-xl text-sm font-semibold hover:bg-gray-800 hover:border-gray-700 transition-colors">
+              <button onClick={() => router.push('/orders')} className="w-full mt-4 py-3 bg-[#1a1a1a] border border-gray-800 text-[#f97316] rounded-xl text-sm font-semibold hover:bg-gray-800 hover:border-gray-700 transition-colors">
                 View All Orders →
               </button>
             </div>

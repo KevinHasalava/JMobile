@@ -8,7 +8,6 @@ const eslintConfig = defineConfig([
       "react-hooks/exhaustive-deps": "off",
       "react/no-unescaped-entities": "off",
       "react-hooks/rules-of-hooks": "warn",
-      "react-hooks/set-state-in-effect": "off",
       "@next/next/no-img-element": "off"
     }
   },

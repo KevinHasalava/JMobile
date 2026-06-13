@@ -1,12 +1,8 @@
-import { NextResponse } from 'next/server';
-import { v2 as cloudinary } from 'cloudinary';
-import { protect, admin as checkAdmin } from '@/lib/auth';
+// We are bypassing Cloudinary entirely and using Base64 Data URIs directly.
+// This mimics the legacy JMobiles branch behavior on Vercel.
 
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'mock_cloud',
-  api_key: process.env.CLOUDINARY_API_KEY || 'mock_key',
-  api_secret: process.env.CLOUDINARY_API_SECRET || 'mock_secret'
-});
+import { NextResponse } from 'next/server';
+import { protect, admin as checkAdmin } from '@/lib/auth';
 
 export async function POST(req, { params }) {
   const resolvedParams = await params;
@@ -25,7 +21,6 @@ export async function POST(req, { params }) {
     const files = [];
 
     for (const [key, value] of formData.entries()) {
-      // Depending on the field, it might be a File/Blob
       if (typeof value === 'object' && value.arrayBuffer) {
         files.push({ key, file: value });
       }
@@ -36,14 +31,17 @@ export async function POST(req, { params }) {
     const uploadPromises = files.map(async ({ key, file }) => {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
+      const base64String = buffer.toString('base64');
+      const dataURI = `data:${file.type};base64,${base64String}`;
 
-      return new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream({ resource_type: 'auto', folder: `mobile-shop/${type}s` }, (error, result) => {
-          if (error) reject(error);
-          else resolve({ filename: file.name, path: result.secure_url, mimetype: file.type, size: file.size });
-        });
-        stream.end(buffer);
-      });
+      // Bypass Cloudinary completely: 
+      // Return the raw Base64 string to the frontend exactly like the JMobiles branch.
+      return {
+        filename: file.name,
+        path: dataURI,
+        mimetype: file.type,
+        size: file.size
+      };
     });
 
     const results = await Promise.all(uploadPromises);
@@ -57,6 +55,7 @@ export async function POST(req, { params }) {
     }
 
   } catch (error) {
+    console.error("Upload Error:", error);
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }

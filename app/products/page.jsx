@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import ProductCard from '@/components/common/ProductCard';
-import ProductSkeleton from '@/components/common/ProductSkeleton';
+import ProductCard from '@/components/client/ProductCard';
+import ProductSkeleton from '@/components/client/ProductSkeleton';
 import { convertAndFormatPrice } from '@/utils/currency';
 import { productsAPI } from '@/services/api';
 
@@ -229,9 +229,9 @@ const Products = () => {
 
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
-          <aside className="lg:w-64 space-y-6">
+          <aside className="lg:w-64 flex-shrink-0 space-y-6 bg-[#111] p-5 rounded-3xl border border-gray-800 h-fit lg:sticky lg:top-24 z-10 shadow-2xl">
             {/* Categories */}
-            <div className="bg-dark-card p-6 rounded-2xl border border-dark-border sticky top-20">
+            <div className="bg-dark-card p-6 rounded-2xl border border-dark-border">
               <h3 className="font-semibold text-lg mb-4 text-text-primary flex items-center">
                 <svg className="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />

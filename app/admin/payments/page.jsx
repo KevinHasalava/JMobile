@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
+import { getImageUrl } from '@/utils/currency';
 import { convertAndFormatPrice } from '@/utils/currency';
 
 const AdminPayments = () => {
@@ -207,13 +208,13 @@ const AdminPayments = () => {
               {selectedOrder.bankSlip?.path ? (
                 selectedOrder.bankSlip.path.endsWith('.pdf') ? (
                   <iframe 
-                    src={`${process.env.REACT_APP_BACKEND_URL}${selectedOrder.bankSlip.path}`} 
+                    src={getImageUrl(selectedOrder.bankSlip.path)} 
                     className="w-full h-[500px] rounded"
                     title="Bank Slip PDF"
                   />
                 ) : (
                   <img
-                    src={`${process.env.REACT_APP_BACKEND_URL}${selectedOrder.bankSlip.path}`}
+                    src={getImageUrl(selectedOrder.bankSlip.path)}
                     alt="Bank Slip"
                     className="max-w-full max-h-[70vh] object-contain rounded"
                   />

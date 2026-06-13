@@ -192,14 +192,9 @@ const AdminProducts = () => {
         imageFiles.forEach(file => uploadFormData.append('images', file));
         if (videoFile) uploadFormData.append('video', videoFile);
 
-        const uploadResponse = await axios.post(
-          `${API_BASE_URL}/upload/product`,
-          uploadFormData,
-          {
-            headers: authHeader,
-            withCredentials: true
-          }
-        );
+        const uploadResponse = await api.post('/upload/product', uploadFormData, {
+          headers: authHeader
+        });
 
         if (uploadResponse.data.data.images?.length > 0) {
           const newImagePaths = uploadResponse.data.data.images.map(

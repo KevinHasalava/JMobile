@@ -41,13 +41,19 @@ const api = axios.create({
   },
 });
 
-// ─── Request Interceptor — attach JWT ─────────────────────────────────────────
+// ─── Request Interceptor — attach JWT & dynamic Content-Type ──────────────────
 api.interceptors.request.use(
   (config) => {
     const token = (typeof window !== "undefined" ? localStorage.getItem('token') : null);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Automatically let browser set Content-Type with boundary for FormData
+    if (typeof window !== "undefined" && config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

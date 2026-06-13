@@ -77,6 +77,20 @@ export async function POST(req, { params }) {
       }, { status: 200 });
     }
 
+    if (action === 'check-email') {
+      const { email } = await req.json();
+      if (!email) return NextResponse.json({ success: false, message: 'Please provide email' }, { status: 400 });
+
+      const user = await User.findOne({ email });
+      if (!user) return NextResponse.json({ success: false, message: 'Account not found' }, { status: 404 });
+      if (!user.phone) return NextResponse.json({ success: false, message: 'No phone number linked to this account' }, { status: 400 });
+
+      const phoneStr = user.phone.replace(/[^0-9]/g, '');
+      const lastTwo = phoneStr.slice(-2);
+      
+      return NextResponse.json({ success: true, data: { lastTwo } }, { status: 200 });
+    }
+
     if (action === 'forgotpassword') {
       const { email, phone } = await req.json();
       if (!email || !phone) return NextResponse.json({ success: false, message: 'Please provide both email and phone number' }, { status: 400 });

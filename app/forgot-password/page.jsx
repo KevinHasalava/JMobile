@@ -20,15 +20,27 @@ const ForgotPassword = () => {
 
   const [resetToken, setResetToken] = useState('');
   const [userId, setUserId] = useState('');
+  const [phoneHint, setPhoneHint] = useState('');
 
-  const handleNextStep1 = (e) => {
+  const handleNextStep1 = async (e) => {
     e.preventDefault();
     if (!email) {
       toast.error('Please enter your email address');
       return;
     }
-    // Simple transition to step 2
-    setStep(2);
+    
+    setLoading(true);
+    try {
+      const { data } = await api.post('/users/check-email', { email });
+      if (data.success) {
+        setPhoneHint(data.data.lastTwo);
+        setStep(2);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Email not found.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleVerifyStep2 = async (e) => {
@@ -141,9 +153,10 @@ const ForgotPassword = () => {
               </div>
               <button
                 type="submit"
-                className="w-full flex items-center justify-center bg-gradient-orange text-white py-3 rounded-lg hover:shadow-glow-orange transition-all font-semibold btn-orange-glow"
+                disabled={loading}
+                className="w-full flex items-center justify-center bg-gradient-orange text-white py-3 rounded-lg hover:shadow-glow-orange transition-all font-semibold btn-orange-glow disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Next Step
+                {loading ? 'Checking...' : 'Next Step'}
               </button>
             </form>
           )}
@@ -159,7 +172,7 @@ const ForgotPassword = () => {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full px-4 py-3 bg-dark-bg border border-dark-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-text-primary placeholder-text-muted hover:border-primary/50 transition-all"
-                  placeholder="07XXXXXXXX"
+                  placeholder={`07XXXXXX${phoneHint || 'XX'}`}
                 />
               </div>
               <button

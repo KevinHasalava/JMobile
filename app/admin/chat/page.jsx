@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '@/components/admin/AdminLayout';
 import toast from 'react-hot-toast';
+import { getImageUrl } from '@/utils/currency';
 import api from '@/services/api';
 import { useSocket } from '@/context/SocketContext';
 import EmojiPicker from 'emoji-picker-react';
@@ -110,19 +111,10 @@ const AdminChat = () => {
       formData.append('images', imageFile);
 
       try {
-        const uploadResponse = await axios.post(
-          `${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/upload/product`,
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${(typeof window !== "undefined" ? localStorage.getItem('token') : null)}`
-            },
-            withCredentials: true
-          }
-        );
+        const uploadResponse = await api.post('/upload/chat', formData);
 
-        if (uploadResponse.data.data.images && uploadResponse.data.data.images.length > 0) {
-          imageUrl = `${process.env.REACT_APP_BACKEND_URL}${uploadResponse.data.data.images[0].path}`;
+        if (uploadResponse.data.data) {
+          imageUrl = uploadResponse.data.data.path;
         }
       } catch (error) {
         console.error('Error uploading image:', error);
@@ -278,7 +270,7 @@ const AdminChat = () => {
                       >
                         <div className={`max-w-[75%] ${msg.senderModel === 'Admin' ? 'bg-gradient-orange text-white' : 'bg-dark-card text-text-primary'} rounded-lg p-3 shadow`}>
                           {msg.imageUrl && (
-                            <img src={msg.imageUrl} alt="attachment" className="rounded mb-2 max-w-full" />
+                            <img src={getImageUrl(msg.imageUrl)} alt="attachment" className="rounded mb-2 max-w-full" />
                           )}
                           <p className="text-sm break-words">{msg.content}</p>
                           <p className={`text-xs mt-1 ${msg.senderModel === 'Admin' ? 'text-white/70' : 'text-text-muted'}`}>

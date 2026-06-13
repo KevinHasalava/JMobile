@@ -27,10 +27,38 @@ export async function GET(req, { params }) {
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 20;
     const skip = (page - 1) * limit;
+    
+    const statusFilter = searchParams.get('status');
+    const search = searchParams.get('search');
+    
+    let query = {};
+    if (statusFilter) query.status = statusFilter;
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { email: { $regex: search, $options: 'i' } },
+        { subject: { $regex: search, $options: 'i' } }
+      ];
+    }
 
-    const inquiries = await ContactInquiry.find().sort({ createdAt: -1 }).skip(skip).limit(limit);
+    const inquiries = await ContactInquiry.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit);
+    const totalFiltered = await ContactInquiry.countDocuments(query);
+    
+    // Calculate stats across ALL documents (unfiltered) for the dashboard indicators
     const total = await ContactInquiry.countDocuments();
-    return NextResponse.json({ success: true, count: inquiries.length, total, pages: Math.ceil(total / limit), currentPage: page, data: inquiries }, { status: 200 });
+    const newCount = await ContactInquiry.countDocuments({ status: 'new' });
+    const repliedCount = await ContactInquiry.countDocuments({ status: 'replied' });
+    const stats = { new: newCount, replied: repliedCount, total };
+
+    return NextResponse.json({ 
+      success: true, 
+      count: inquiries.length, 
+      total: totalFiltered, 
+      pages: Math.ceil(totalFiltered / limit), 
+      currentPage: page, 
+      data: inquiries, 
+      stats 
+    }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
