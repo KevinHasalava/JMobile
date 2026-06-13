@@ -24,6 +24,9 @@ const resolveBaseURL = () => {
   // Dynamic fallback: derive API base from whatever origin the app is currently on.
   // Covers staging, preview URLs, and any misconfigured env var state.
   if (typeof window !== 'undefined') {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:5000/api';
+    }
     return `${window.location.origin}/api`;
   }
 
