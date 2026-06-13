@@ -21,6 +21,11 @@ const Profile = () => {
     street: '',
     city: '',
     zipCode: '',
+  });
+
+  const [isEditingPassword, setIsEditingPassword] = useState(false);
+  const [loadingPassword, setLoadingPassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     password: '',
     confirmPassword: '',
@@ -37,10 +42,11 @@ const Profile = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const { data } = await ordersAPI.getMyOrders();
+        const response = await ordersAPI.getMyOrders();
+        const orders = response.data.data || [];
         
-        const totalOrders = data.length;
-        const totalSpent = data.reduce((acc, order) => acc + order.totalPrice, 0);
+        const totalOrders = orders.length;
+        const totalSpent = orders.reduce((acc, order) => acc + order.totalPrice, 0);
         const loyaltyPoints = Math.floor(totalSpent / 100);
         
         setStats([
@@ -49,11 +55,11 @@ const Profile = () => {
           { label: 'Loyalty Points', value: loyaltyPoints.toString() },
         ]);
 
-        const formattedOrders = data.slice(0, 5).map(order => ({
+        const formattedOrders = orders.slice(0, 5).map(order => ({
           id: `#ORD-${order._id.substring(order._id.length - 6).toUpperCase()}`,
           date: new Date(order.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
-          status: order.status || (order.isDelivered ? 'Delivered' : 'Processing'),
-          total: `$${order.totalPrice.toFixed(2)}`
+          status: order.orderStatus || (order.isDelivered ? 'Delivered' : 'Processing'),
+          total: `Rs. ${order.totalPrice.toFixed(2)}`
         }));
         setRecentOrders(formattedOrders);
       } catch (error) {
@@ -70,6 +76,8 @@ const Profile = () => {
         street: user.address?.street || '',
         city: user.address?.city || '',
         zipCode: user.address?.zipCode || '',
+      });
+      setPasswordData({
         currentPassword: '',
         password: '',
         confirmPassword: '',
@@ -96,12 +104,6 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
-    if (formData.password && !formData.currentPassword) {
-      return toast.error('Current password is required to set a new password!');
-    }
-    if (formData.password && formData.password !== formData.confirmPassword) {
-      return toast.error('Passwords do not match!');
-    }
 
     setLoading(true);
     let finalAvatarUrl = formData.avatar;
@@ -140,21 +142,44 @@ const Profile = () => {
       }
     };
 
-    if (formData.password) {
-      updateData.currentPassword = formData.currentPassword;
-      updateData.password = formData.password;
-    }
-
     const result = await updateProfile(updateData);
     setLoading(false);
     
     if (result.success) {
       toast.success('Profile updated successfully!');
-      setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
       setAvatarFile(null);
       setIsEditing(false);
     } else {
       toast.error(result.message || 'Failed to update profile');
+    }
+  };
+
+  const handlePasswordSave = async () => {
+    if (!passwordData.currentPassword) {
+      return toast.error('Current password is required to update your password!');
+    }
+    if (!passwordData.password) {
+      return toast.error('New password cannot be empty!');
+    }
+    if (passwordData.password !== passwordData.confirmPassword) {
+      return toast.error('Passwords do not match!');
+    }
+
+    setLoadingPassword(true);
+    const updateData = {
+      currentPassword: passwordData.currentPassword,
+      password: passwordData.password,
+    };
+
+    const result = await updateProfile(updateData);
+    setLoadingPassword(false);
+    
+    if (result.success) {
+      toast.success('Password updated successfully!');
+      setPasswordData({ currentPassword: '', password: '', confirmPassword: '' });
+      setIsEditingPassword(false);
+    } else {
+      toast.error(result.message || 'Failed to update password');
     }
   };
 
@@ -195,6 +220,24 @@ const Profile = () => {
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+            )}
+
+            {/* Remove Avatar Badge */}
+            {isEditing && formData.avatar && (
+              <div 
+                className="absolute top-0 right-0 w-8 h-8 bg-red-500 rounded-full border-2 border-[#121212] flex items-center justify-center shadow-lg hover:bg-red-600 transition-colors z-10 cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFormData(prev => ({ ...prev, avatar: '' }));
+                  setAvatarFile(null);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+                title="Remove Avatar"
+              >
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </div>
             )}
@@ -278,28 +321,6 @@ const Profile = () => {
                 </div>
               </div>
 
-              {/* Password & Security Section */}
-              <div className="mt-8 pt-8 border-t border-gray-800/50">
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
-                  <span className="w-2 h-6 bg-[#f97316] rounded-full"></span>
-                  Security & Password
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm text-gray-400 mb-2">Current Password (Required for updates)</label>
-                    <input type="password" disabled={!isEditing} placeholder="Enter your current password" value={formData.currentPassword} onChange={e => setFormData({...formData, currentPassword: e.target.value})} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">New Password</label>
-                    <input type="password" disabled={!isEditing} placeholder="Leave blank to keep current" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">Confirm Password</label>
-                    <input type="password" disabled={!isEditing} placeholder="Confirm new password" value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
-                  </div>
-                </div>
-              </div>
-
               {/* Action Buttons */}
               {isEditing && (
                 <div className="mt-8 pt-8 border-t border-gray-800/50 flex flex-col sm:flex-row gap-4 animate-fadeIn">
@@ -308,13 +329,58 @@ const Profile = () => {
                   </button>
                   <button onClick={() => {
                     setIsEditing(false);
-                    setFormData({ ...formData, currentPassword: '', password: '', confirmPassword: '' });
                   }} className="px-10 py-3.5 bg-[#1a1a1a] border border-gray-700 text-white rounded-xl font-medium hover:bg-gray-800 hover:border-gray-600 transition-colors">
                     Cancel
                   </button>
                 </div>
               )}
             </div>
+
+            {/* Password & Security Section (Separated) */}
+            <div className="bg-[#121212] border border-gray-800 rounded-3xl p-8 relative overflow-hidden mt-6">
+              <div className="flex justify-between items-center mb-8">
+                <h3 className="text-xl font-bold flex items-center gap-3">
+                  <span className="w-2 h-6 bg-[#f97316] rounded-full"></span>
+                  Security & Password
+                </h3>
+                {!isEditingPassword && (
+                  <button onClick={() => setIsEditingPassword(true)} className="text-[#f97316] hover:text-[#ea580c] text-sm font-semibold flex items-center gap-1 transition-colors">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012-2h4a2 2 0 012 2v10a2 2 0 01-2 2h-4a2 2 0 01-2-2V7z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 12h4m-4 0a2 2 0 11-4 0m4 0a2 2 0 10-4 0M7 12H3" /></svg>
+                    Change Password
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="md:col-span-2">
+                  <label className="block text-sm text-gray-400 mb-2">Current Password (Required to update)</label>
+                  <input type="password" disabled={!isEditingPassword} placeholder="Enter your current password" value={passwordData.currentPassword} onChange={e => setPasswordData({...passwordData, currentPassword: e.target.value})} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">New Password</label>
+                  <input type="password" disabled={!isEditingPassword} placeholder="Enter new password" value={passwordData.password} onChange={e => setPasswordData({...passwordData, password: e.target.value})} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Confirm Password</label>
+                  <input type="password" disabled={!isEditingPassword} placeholder="Confirm new password" value={passwordData.confirmPassword} onChange={e => setPasswordData({...passwordData, confirmPassword: e.target.value})} className="w-full bg-[#1a1a1a] border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#f97316] disabled:opacity-50 transition-all" />
+                </div>
+              </div>
+
+              {isEditingPassword && (
+                <div className="mt-8 pt-8 border-t border-gray-800/50 flex flex-col sm:flex-row gap-4 animate-fadeIn">
+                  <button onClick={handlePasswordSave} disabled={loadingPassword} className="flex-1 bg-gradient-to-r from-[#f97316] to-[#ea580c] text-white py-3.5 px-6 rounded-xl font-bold text-lg shadow-[0_0_20px_rgba(249,115,22,0.3)] hover:shadow-[0_0_30px_rgba(249,115,22,0.5)] hover:-translate-y-0.5 transition-all disabled:opacity-70 disabled:hover:translate-y-0 disabled:shadow-none">
+                    {loadingPassword ? 'Updating...' : 'Update Password'}
+                  </button>
+                  <button onClick={() => {
+                    setIsEditingPassword(false);
+                    setPasswordData({ currentPassword: '', password: '', confirmPassword: '' });
+                  }} className="px-10 py-3.5 bg-[#1a1a1a] border border-gray-700 text-white rounded-xl font-medium hover:bg-gray-800 hover:border-gray-600 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+
           </div>
 
           {/* Right Column: Analytics & Activity */}
@@ -369,7 +435,7 @@ const Profile = () => {
                   </tbody>
                 </table>
               </div>
-              <button className="w-full mt-4 py-3 bg-[#1a1a1a] border border-gray-800 text-[#f97316] rounded-xl text-sm font-semibold hover:bg-gray-800 hover:border-gray-700 transition-colors">
+              <button onClick={() => navigate('/my-orders')} className="w-full mt-4 py-3 bg-[#1a1a1a] border border-gray-800 text-[#f97316] rounded-xl text-sm font-semibold hover:bg-gray-800 hover:border-gray-700 transition-colors">
                 View All Orders →
               </button>
             </div>

@@ -219,7 +219,7 @@ const AdminProducts = () => {
         originalPrice: parseFloat(formData.originalPrice) || parseFloat(formData.price),
         stock: parseInt(formData.stock),
         images: uploadedImages,
-        image: uploadedImages[0] || formData.image,
+        image: uploadedImages.length > 0 ? uploadedImages[0] : '',
         video: uploadedVideo
       };
 
